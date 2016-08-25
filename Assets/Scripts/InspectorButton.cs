@@ -32,7 +32,8 @@ public class InspectorButtonPropertyDrawer : PropertyDrawer
     {
         InspectorButtonAttribute inspectorButtonAttribute = (InspectorButtonAttribute)attribute;
         Rect buttonRect = new Rect(position.x + (position.width - Screen.width + 10) * 0.5f, position.y, Screen.width - 20, position.height);
-        if (GUI.Button(buttonRect, label.text)) {
+        if (GUI.Button(buttonRect, label.text))
+        {
             System.Type eventOwnerType = prop.serializedObject.targetObject.GetType();
             string eventName = inspectorButtonAttribute.MethodName;
 

@@ -7,7 +7,7 @@
     }
     SubShader
     {
-        Tags{ "RenderMode" = "Opaque" }
+        Tags{ "RenderMode" = "Opaque" "Queue" = "Geometry" }
         LOD 200
 
         Pass
@@ -51,11 +51,11 @@
 
             float Wave(int i, float x, float y)
             {
-                float A = _SineWave[i].x; // amplitude
-                float o = _SineWave[i].y; // frequency
-                float p = _SineWave[i].z; // phase
-                float2 D = float2(cos(_SineWave[i].w), sin(_SineWave[i].w)); // direction
-                return A * sin(dot(D, float2(x,y)) * o + _Time.x * _TimeScale * p);
+                float A = _SineWave[i].x; 										// amplitude
+				float O = _SineWave[i].y; 										// frequency
+                float P = _SineWave[i].z; 										// phase
+                float2 D = float2(cos(_SineWave[i].w), sin(_SineWave[i].w));	// direction
+                return A * sin(dot(D, float2(x,y)) * O + _Time.x * _TimeScale * P);
             }
 
             float WaveHeight(float x, float y)
@@ -145,5 +145,5 @@
             ENDCG
         }
     }
-    Fallback "Diffuse"
+    // Fallback "Diffuse"
 }
