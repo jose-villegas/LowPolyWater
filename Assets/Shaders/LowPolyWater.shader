@@ -4,11 +4,10 @@
     {
         _MainTex("Texture", 2D) = "white" {}
         _Color("Color", Color) = (1, 1, 1, 1)
-        _Cube ("Cubemap", CUBE) = "" {}
     }
     SubShader
     {
-        Tags{ "RenderMode" = "Opaque" "LightMode" = "ForwardBase" }
+        Tags{ "RenderMode" = "Opaque" }
         LOD 200
 
         Pass
@@ -40,27 +39,22 @@
 
             static const float PI = float(3.14159);
 
+            // SineWave definition
+            // x = amplitude, y = frequency, z = phase, w = direction angle
+            uniform float4 _SineWave[8];
+            uniform int _Waves;
+            uniform float _TimeScale;
+
             sampler2D _MainTex;
             float4 _MainTex_ST;
             fixed4 _Color;
-            samplerCUBE _Cube;
-
-            uniform float _Height;
-            uniform int _Waves;
-            uniform float _TimeScale = 1.0;
-
-            // SineWave definition
-            uniform float _Amplitude[8];
-            uniform float _Frequency[8];
-            uniform float _Phase[8];
-            uniform float4 _TravelDirection[8];
 
             float Wave(int i, float x, float y)
             {
-                float A = _Amplitude[i];
-                float2 D = _TravelDirection[i].xy;
-                float o = _Frequency[i];
-                float p = _Phase[i];
+                float A = _SineWave[i].x; // amplitude
+                float o = _SineWave[i].y; // frequency
+                float p = _SineWave[i].z; // phase
+                float2 D = float2(cos(_SineWave[i].w), sin(_SineWave[i].w)); // direction
                 return A * sin(dot(D, float2(x,y)) * o + _Time.x * _TimeScale * p);
             }
 
@@ -102,7 +96,7 @@
             {
                 VS_Output o = (VS_Output)0;
                 // Water simulation
-                v.vertex.y = _Height + WaveHeight(v.vertex.x, v.vertex.z);
+                v.vertex.y += WaveHeight(v.vertex.x, v.vertex.z);
                 // v.vertex.y = _Amplitude[0];
                 // Space transform
                 o.vertex = mul(UNITY_MATRIX_MVP, v.vertex);
@@ -121,7 +115,8 @@
                 VS_Output test = (VS_Output)0;
                 float3 normal = normalize(cross(input[1].worldPosition.xyz -
                                                 input[0].worldPosition.xyz,
-                                                input[2].worldPosition.xyz - input[0].worldPosition.xyz));
+                                                input[2].worldPosition.xyz - 
+                                                input[0].worldPosition.xyz));
                 // shading
                 float3 normalDirection = normalize(mul(float4(normal, 0.0), _Object2World).xyz);
                 float3 lightDir = normalize(_WorldSpaceLightPos0.xyz);
@@ -150,4 +145,5 @@
             ENDCG
         }
     }
+    Fallback "Diffuse"
 }

@@ -5,14 +5,12 @@ using System;
 public class LowPolyWater : MonoBehaviour
 {
 	[SerializeField]
-	private float _height = 0;
+	private SineWaves _sineWaves = null;
 	[SerializeField]
-	private float _timescale = 1.0f;
-	[SerializeField]
-	private SineWaves _sineWaves;
+	private Material _lowPolyWater = null;
 
 	// Use this for initialization
-	void Start ()
+	void Start()
 	{
 		// no waves info
 		if (_sineWaves == null) {
@@ -20,22 +18,25 @@ public class LowPolyWater : MonoBehaviour
 			return;
 		}
 
-		var material = Resources.Load("Materials/LowPolyWater", typeof(Material)) as Material;
+		_lowPolyWater = Resources.Load("Materials/LowPolyWater", typeof(Material)) as Material;
 
-		if (!material) {
+		if (!_lowPolyWater) {
+			enabled = false;
 			return;
 		}
+			
 		// set general uniforms
-		material.SetInt("_Waves", _sineWaves.Length);
-		material.SetFloat("_Height", _height);
-		material.SetFloat("_TimeScale", _timescale);
+		_lowPolyWater.SetInt("_Waves", _sineWaves.Length);
+        _lowPolyWater.SetFloat("_TimeScale", _sineWaves.Timescale);
 		// set simulation waves parameters
 		for (int i = 0; i < _sineWaves.Length; i++) {
-			material.SetFloat("_Amplitude" + i, _sineWaves [i].amplitude);
-			material.SetFloat("_Frequency" + i, _sineWaves[i].frequency);
-			material.SetFloat("_Phase" + i, _sineWaves[i].phase);
-			var dir = new Vector4(_sineWaves[i].travelDirection.x, _sineWaves[i].travelDirection.y, 0, 0);
-			material.SetVector("_TravelDirection" + i, dir);
+			var vals = new Vector4(_sineWaves[i].amplitude, _sineWaves[i].frequency,
+				           _sineWaves[i].phase, _sineWaves[i].travelAngle * Mathf.Deg2Rad);
+			_lowPolyWater.SetVector("_SineWave" + i, vals);
 		}
+	}
+
+	void Update()
+	{
 	}
 }
