@@ -1,29 +1,41 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System;
 
 public class LowPolyWater : MonoBehaviour
 {
-    [Range(1, 32)]
-    public int waves = 4;
-    public float height = 0;
-    public float timeScale = 1.0f;
+	[SerializeField]
+	private float _height = 0;
+	[SerializeField]
+	private float _timescale = 1.0f;
+	[SerializeField]
+	private SineWaves _sineWaves;
 
 	// Use this for initialization
 	void Start ()
 	{
-	    var material = Resources.Load("Materials/LowPolyWater", typeof (Material)) as Material;
+		// no waves info
+		if (_sineWaves == null) {
+			enabled = false;
+			return;
+		}
 
-	    if (!material) { return; }
-	    // set wave count
-        material.SetInt("_Waves", waves);
-        material.SetFloat("_Height", height);
-        material.SetFloat("_TimeScale", timeScale);
+		var material = Resources.Load("Materials/LowPolyWater", typeof(Material)) as Material;
 
-        // assign random directions
-	    for (int i = 0; i < waves; i++)
-	    {
-	        var angle = Random.Range(-Mathf.PI/3.0f, Mathf.PI/3.0f);
-            material.SetVector("_Direction" + i, new Vector4(Mathf.Cos(angle), Mathf.Sin(angle), 0.0f, 0.0f));
-        }
+		if (!material) {
+			return;
+		}
+		// set general uniforms
+		material.SetInt("_Waves", _sineWaves.Length);
+		material.SetFloat("_Height", _height);
+		material.SetFloat("_TimeScale", _timescale);
+		// set simulation waves parameters
+		for (int i = 0; i < _sineWaves.Length; i++) {
+			material.SetFloat("_Amplitude" + i, _sineWaves [i].amplitude);
+			material.SetFloat("_Frequency" + i, _sineWaves[i].frequency);
+			material.SetFloat("_Phase" + i, _sineWaves[i].phase);
+			var dir = new Vector4(_sineWaves[i].travelDirection.x, _sineWaves[i].travelDirection.y, 0, 0);
+			material.SetVector("_TravelDirection" + i, dir);
+		}
 	}
 }

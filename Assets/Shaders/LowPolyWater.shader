@@ -13,10 +13,6 @@
 
         Pass
         {
-            // Cull Front
-            // ZWrite Off
-            // Blend SrcAlpha OneMinusSrcAlpha
-
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -51,30 +47,21 @@
 
             uniform float _Height;
             uniform int _Waves;
-            uniform float4 _Direction[8];
             uniform float _TimeScale = 1.0;
 
-            float Amplitude(int i)
-            {
-                return 0.5 / (i + 1.0f);
-            }
-
-            float WaveLength(int i)
-            {
-                return 8.0f * PI / (i + 1.0f);
-            }
-
-            float Speed(int i)
-            {
-                return 1.0 + 2.0 * i;
-            }
+            // SineWave definition
+            uniform float _Amplitude[8];
+            uniform float _Frequency[8];
+            uniform float _Phase[8];
+            uniform float4 _TravelDirection[8];
 
             float Wave(int i, float x, float y)
             {
-                float freq = 2.0 * PI / WaveLength(i);
-                float phase = Speed(i) * freq;
-                float theta = dot(_Direction[i].xy, float2(x, y));
-                return Amplitude(i) * sin(theta * freq + _Time.x * _TimeScale * phase);
+                float A = _Amplitude[i];
+                float2 D = _TravelDirection[i].xy;
+                float o = _Frequency[i];
+                float p = _Phase[i];
+                return A * sin(dot(D, float2(x,y)) * o + _Time.x * _TimeScale * p);
             }
 
             float WaveHeight(float x, float y)
