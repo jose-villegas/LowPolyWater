@@ -1,13 +1,15 @@
-﻿Shader "Custom/LowPolyWater"
+﻿Shader "Custom/LowPolyWater (Sum of Sines)"
 {
     Properties
     {
-        _MainTex("Texture", 2D) = "white" {}
-        _Color("Color", Color) = (1, 1, 1, 1)
+        _AlbedoTex("Albedo", 2D) = "white" {}
+        _AlbedoColor("Albedo Color", Color) = (1, 1, 1, 1)
+        _SpecularColor("Specular Color", Color) = (0, 0, 0, 0)
+       	_Shininess ("Shininess", Float) = 10
     }
     SubShader
     {
-        Tags{ "RenderMode" = "Opaque" "Queue" = "Geometry" }
+        Tags{ "RenderMode" = "Opaque" "Queue" = "Geometry" "LightMode" = "ForwardBase" }
         LOD 200
 
         Pass
@@ -29,12 +31,11 @@
 
             struct VS_Output
             {
-                float4 vertex : SV_POSITION;
-                float3 normal : NORMAL;
+                float4 pos : SV_POSITION;
                 float2 uv : TEXCOORD0;
-                float3 worldPosition : TEXCOORD1;
-                fixed4 color : COLOR;
-                float3 viewDir : TEXCOORD2;
+                float3 posWorld : WORLDPOSITION;
+                float3 normalDir : NORMAL;
+                float4 color : COLOR;
             };
 
             static const float PI = float(3.14159);
@@ -44,10 +45,12 @@
             uniform float4 _SineWave[8];
             uniform int _Waves;
             uniform float _TimeScale;
-
-            sampler2D _MainTex;
-            float4 _MainTex_ST;
-            fixed4 _Color;
+            // properties input
+            sampler2D _AlbedoTex;
+            float4 _AlbedoTex_ST;
+            fixed4 _AlbedoColor;
+            fixed4 _SpecularColor;
+            float _Shininess;
 
             float Wave(int i, float x, float y)
             {
@@ -70,41 +73,19 @@
                 return height;
             }
 
-            inline fixed4 Lighting_Reflect(float3 viewDir, float3 normal)
-            {
-                float4 hdrReflection = 1.0;
-                float3 reflectedDir = reflect(viewDir, normal);
-                float4 reflection = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, reflectedDir);
-                hdrReflection.rgb = DecodeHDR(reflection, unity_SpecCube0_HDR);
-                hdrReflection.a = 1.0;
-
-                return hdrReflection;
-            }
-
-            inline fixed4 Lighting_Refract(float3 viewDir, float3 normal)
-            {
-                float4 hdrRefraction = 1.0;
-                float3 refractedDir = refract(viewDir, normal, 1.0 / (1.33));
-                float4 refraction = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, refractedDir);
-                hdrRefraction.rgb = DecodeHDR(refraction, unity_SpecCube0_HDR);
-                hdrRefraction.a = 1.0;
-
-                return hdrRefraction;
-            }
-
             VS_Output vert(VS_Input v)
             {
                 VS_Output o = (VS_Output)0;
                 // Water simulation
-                v.vertex.y += WaveHeight(v.vertex.x, v.vertex.z);
-                // v.vertex.y = _Amplitude[0];
+                v.vertex.xyz += v.normal * WaveHeight(v.vertex.x, v.vertex.z);
                 // Space transform
-                o.vertex = mul(UNITY_MATRIX_MVP, v.vertex);
-                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
-                o.normal = v.normal;
-                o.worldPosition = mul(_Object2World, v.vertex).xyz;
-                // view dir
-                o.viewDir = o.worldPosition - _WorldSpaceCameraPos;
+                o.uv = TRANSFORM_TEX(v.uv, _AlbedoTex);
+                o.normalDir = v.normal;
+                o.posWorld = mul(_Object2World, v.vertex).xyz;
+                o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
+                // gourad specular
+                float3 lightDirection;
+                float3 normalDirection = normalize(mul(float4(v.normal, 0.0), _World2Object).xyz);
 
                 return o;
             }
@@ -113,23 +94,45 @@
             void geom(triangle VS_Output input[3], inout TriangleStream<VS_Output> OutputStream)
             {
                 VS_Output test = (VS_Output)0;
-                float3 normal = normalize(cross(input[1].worldPosition.xyz -
-                                                input[0].worldPosition.xyz,
-                                                input[2].worldPosition.xyz - 
-                                                input[0].worldPosition.xyz));
+                float3 planeNormal = normalize(cross(input[1].posWorld.xyz -
+                                                	 input[0].posWorld.xyz,
+                                                	 input[2].posWorld.xyz - 
+                                                	 input[0].posWorld.xyz));
                 // shading
-                float3 normalDirection = normalize(mul(float4(normal, 0.0), _Object2World).xyz);
-                float3 lightDir = normalize(_WorldSpaceLightPos0.xyz);
-                float nDotL = dot(normalDirection, normalize(float3(1, 1, 0)));
-                fixed4 color = _LightColor0 * fixed4(_Color.rgb * nDotL, _Color.a);
+                float3 normalDirection = normalize(mul(_World2Object, float4(planeNormal, 0.0f)));
+                float3 lightDirection;
+
+				if (0.0 == _WorldSpaceLightPos0.w) // directional light?
+				{
+					lightDirection = normalize(_WorldSpaceLightPos0.xyz);
+				}
+
+				// diffuse intensity
+				float nDotL = dot(normalDirection, lightDirection);
+				float3 ambient = UNITY_LIGHTMODEL_AMBIENT.rgb * _AlbedoColor.rgb;
+				float3 diffuse = _LightColor0.rgb * _AlbedoColor.rgb * max(0.0f, nDotL);
+				float3 specular = float3(0.0f, 0.0f, 0.0f);
+
+				if(nDotL > 0.0f)
+				{
+					float3 center = (input[0].posWorld + input[1].posWorld 
+									+ input[2].posWorld) / 3.0f;
+					float3 viewDir = normalize(_WorldSpaceCameraPos - center);
+					float3 H = normalize(lightDirection + viewDir);
+					// specular intensity
+					float NdotH = pow(saturate(dot(normalDirection, H)), _Shininess);
+					specular = _LightColor0.rgb * _SpecularColor.rgb * max(0.0f, NdotH);  
+				}
+
+				float4 final = float4(ambient + diffuse + specular, _AlbedoColor.a);
 
                 for (int i = 0; i < 3; i++)
                 {
-                    test.normal = normal;
-                    test.vertex = input[i].vertex;
+					// pass values to fragment shader
+                    test.normalDir = normalDirection;
+                    test.pos = input[i].pos;
                     test.uv = input[i].uv;
-                    test.color = color;
-                    test.viewDir = input[i].viewDir;
+                    test.color = final;
                     OutputStream.Append(test);
                 }
             }
@@ -137,13 +140,11 @@
             fixed4 frag(VS_Output i) : SV_Target
             {
                 // obtain surface color
-                fixed4 col = tex2D(_MainTex, i.uv) * i.color;
-                // col *= Lighting_Reflect(i.viewDir, i.normal);
-                // col *= Lighting_Refract(i.viewDir, i.normal);
+                fixed4 col = tex2D(_AlbedoTex, i.uv) * i.color;
                 return col;
             }
             ENDCG
         }
     }
-    // Fallback "Diffuse"
+    //Fallback "Diffuse"
 }
