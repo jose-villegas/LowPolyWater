@@ -9,7 +9,6 @@ GameObject:
   m_Component:
   - 4: {fileID: 493646}
   - 33: {fileID: 3357246}
-  - 64: {fileID: 6433474}
   - 23: {fileID: 2375060}
   - 114: {fileID: 11438274}
   m_Layer: 4
@@ -40,12 +39,12 @@ MeshRenderer:
   m_GameObject: {fileID: 147632}
   m_Enabled: 1
   m_CastShadows: 1
-  m_ReceiveShadows: 0
+  m_ReceiveShadows: 1
   m_Materials:
   - {fileID: 2100000, guid: 8e591101085c29d4b970840724664316, type: 2}
   m_SubsetIndices: 
   m_StaticBatchRoot: {fileID: 0}
-  m_UseLightProbes: 0
+  m_UseLightProbes: 1
   m_ReflectionProbeUsage: 1
   m_ProbeAnchor: {fileID: 0}
   m_ScaleInLightmap: 1
@@ -65,18 +64,6 @@ MeshFilter:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 147632}
   m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
---- !u!64 &6433474
-MeshCollider:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 147632}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 0
-  serializedVersion: 2
-  m_Convex: 0
-  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!114 &11438274
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -88,7 +75,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5a1f029e13f9514ab53a4d0f37346dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _sineWaves: {fileID: 11400000, guid: 256c9b184d6d49347b421dbaea516fb7, type: 2}
+  _sineWaves: {fileID: 11400000, guid: fc6be2d1d83388647806ebc5dc1bc2c7, type: 2}
+  _updateMaterialPerFrame: 0
 --- !u!1001 &100100000
 Prefab:
   m_ObjectHideFlags: 1
