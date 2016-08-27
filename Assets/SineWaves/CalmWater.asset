@@ -14,24 +14,24 @@ MonoBehaviour:
   _timescale: 3
   _waves: 4
   _wavesInfo:
-  - amplitude: 0.06
-    waveLength: 8
+  - amplitude: 0.2
+    waveLength: 2
     speed: 2
-    travelAngle: 118
+    travelAngle: 287
     sharpness: 1
-  - amplitude: 0.05
-    waveLength: 7
-    speed: 5
-    travelAngle: 209
+  - amplitude: 0.35
+    waveLength: 4
+    speed: 3
+    travelAngle: 335
     sharpness: 2
-  - amplitude: 0.1
-    waveLength: 5
+  - amplitude: 0.25
+    waveLength: 6
     speed: 1
-    travelAngle: 53
+    travelAngle: 85
     sharpness: 3
-  - amplitude: 0.07
-    waveLength: 12
-    speed: 2
-    travelAngle: 107
+  - amplitude: 0.5
+    waveLength: 8
+    speed: 1
+    travelAngle: 137
     sharpness: 4
   assignRandomDirections: 0

@@ -11,6 +11,7 @@ GameObject:
   - 33: {fileID: 3357246}
   - 23: {fileID: 2375060}
   - 114: {fileID: 11438274}
+  - 114: {fileID: 11400216}
   m_Layer: 4
   m_Name: LowPolyWater (Flat Shading)
   m_TagString: Untagged
@@ -41,7 +42,7 @@ MeshRenderer:
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_Materials:
-  - {fileID: 2100000, guid: 8e591101085c29d4b970840724664316, type: 2}
+  - {fileID: 0}
   m_SubsetIndices: 
   m_StaticBatchRoot: {fileID: 0}
   m_UseLightProbes: 1
@@ -64,6 +65,23 @@ MeshFilter:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 147632}
   m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &11400216
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 147632}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 854d5bd302c16b1438ff0dee8a48267f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _disablePixelLights: 1
+  _textureSize: 256
+  _clipPlaneOffset: 0.07
+  _reflectLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!114 &11438274
 MonoBehaviour:
   m_ObjectHideFlags: 1

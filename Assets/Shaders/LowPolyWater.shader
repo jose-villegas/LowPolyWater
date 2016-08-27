@@ -1,4 +1,4 @@
-﻿Shader "Custom/LowPolyWater"
+﻿Shader "LowPolyWater/Standard"
 {
     Properties
     {
@@ -7,6 +7,7 @@
         _SpecularColor("Specular Color", Color) = (0, 0, 0, 0)
        	_Shininess ("Shininess", Float) = 10
        	_FresnelPower ("Fresnel Power", Float) = 5
+       	_Reflectivity ("Reflectivity", Range(0.0, 1.0)) = 0.15
 		[HideInInspector] _ReflectionTex ("", 2D) = "white" {}
     }
 	CGINCLUDE
@@ -46,7 +47,7 @@
         LOD 200
         Pass
         {
-        	Tags{ "RenderMode" = "Transparent" "Queue" = "Transparent" "LightMode" = "ForwardBase" }
+        	Tags{ "RenderMode" = "Opaque" "Queue" = "Geometry" "LightMode" = "ForwardBase" }
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -88,6 +89,7 @@
             fixed4 _SpecularColor;
             float _Shininess;
             float _FresnelPower;
+            float _Reflectivity;
 
             VS_Output vert(VS_Input v)
             {
@@ -171,7 +173,8 @@
                 // compute shadow attenuation (1.0 = fully lit, 0.0 = fully shadowed)
                 fixed shadow = SHADOW_ATTENUATION(i);
                 col.rgb *= i.ambient + (i.diffuse + i.specular) * shadow;
-                return col * refl;
+                col.rgb = lerp(col.rgb, refl.rgb, _Reflectivity);
+                return col;
             }
             ENDCG
         }

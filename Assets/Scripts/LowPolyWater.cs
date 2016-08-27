@@ -7,7 +7,7 @@ public class LowPolyWater : MonoBehaviour
 {
     [SerializeField]
     private SineWaves _sineWaves = null;
-    [SerializeField]
+    [SerializeField, Tooltip("Useful for testing sine wave setups")]
     private bool _updateMaterialPerFrame;
     private Material _lowPolyWater = null;
 

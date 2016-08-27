@@ -168,6 +168,10 @@ Material:
         first:
           name: _FresnelPower
         second: 5
+      data:
+        first:
+          name: _Reflectivity
+        second: 0.15
     m_Colors:
       data:
         first:
