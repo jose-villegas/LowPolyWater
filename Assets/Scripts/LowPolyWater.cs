@@ -36,8 +36,11 @@ public class LowPolyWater : MonoBehaviour
             var a = _sineWaves[i].amplitude;
             var f = 2.0f * Mathf.PI / _sineWaves[i].waveLength;
             var p = _sineWaves[i].speed * f;
-            var d = _sineWaves[i].travelAngle;
-            _lowPolyWater.SetVector("_SineWave" + i, new Vector4(a, f, p, d));
+            float radA = _sineWaves[i].travelAngle * Mathf.Deg2Rad;
+            var d = new Vector2(Mathf.Sin(radA), Mathf.Cos(radA));
+            var s = _sineWaves[i].sharpness;
+            _lowPolyWater.SetVector("_SineWave0" + i, new Vector4(a, f, p, 0));
+            _lowPolyWater.SetVector("_SineWave1" + i, new Vector4(d.x, d.y, s, 0));
         }
     }
 

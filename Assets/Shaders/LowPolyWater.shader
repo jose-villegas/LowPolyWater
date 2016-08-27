@@ -44,8 +44,10 @@
             static const float PI = float(3.14159);
 
             // SineWave definition
-            // x = amplitude, y = frequency, z = phase, w = direction angle
-            uniform float4 _SineWave[8];
+            // _SineWave0: x = amplitude, y = frequency, z = phase
+            // _SineWave1: xy = travel direction, z = sharpness
+            uniform float3 _SineWave0[8];
+            uniform float3 _SineWave1[8];
             uniform int _Waves;
             uniform float _TimeScale;
             // properties input
@@ -56,15 +58,19 @@
             float _Shininess;
             float _FresnelPower;
 
+            // physical model for water waves
+            // check: http://http.developer.nvidia.com/GPUGems/gpugems_ch01.html
             float Wave(int i, float x, float y)
             {
-                float A = _SineWave[i].x; 										// amplitude
-				float O = _SineWave[i].y; 										// frequency
-                float P = _SineWave[i].z; 										// phase
-                float2 D = float2(cos(_SineWave[i].w), sin(_SineWave[i].w));	// direction
-                return A * sin(dot(D, float2(x,y)) * O + _Time.x * _TimeScale * P);
+                float A = _SineWave0[i].x; 										// amplitude
+				float O = _SineWave0[i].y; 										// frequency
+                float P = _SineWave0[i].z; 										// phase
+            	float2 D = _SineWave1[i].xy;									// direction
+                float sine = sin(dot(D, float2(x,y)) * O + _Time.x * _TimeScale * P);
+                return 2.0f * A * pow((sine + 1.0f) / 2.0f, _SineWave1[i].z);
             }
 
+            // sum of sines wave transform
             float WaveHeight(float x, float y)
             {
                 float height = 0.0;

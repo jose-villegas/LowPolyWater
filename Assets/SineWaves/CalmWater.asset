@@ -18,16 +18,20 @@ MonoBehaviour:
     waveLength: 25.132742
     speed: 1
     travelAngle: 225
+    sharpness: 1.25
   - amplitude: 0.25
     waveLength: 12.56637
     speed: 3
     travelAngle: 223
+    sharpness: 1.5
   - amplitude: 0.16666667
     waveLength: 8.37758
     speed: 5
     travelAngle: 43
+    sharpness: 1.75
   - amplitude: 0.125
     waveLength: 6.283185
     speed: 7
     travelAngle: 107
+    sharpness: 2
   assignRandomDirections: 0

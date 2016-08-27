@@ -13,6 +13,7 @@ public class SineWaves : ScriptableObject
         public float speed;
         [Range(0, 360)]
         public float travelAngle;
+        public float sharpness;
     }
 
     [SerializeField]
