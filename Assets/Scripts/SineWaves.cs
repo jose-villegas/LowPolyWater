@@ -54,7 +54,7 @@ public class SineWaves : ScriptableObject
     void AssignRandomDirections()
     {
         for (int i = 0; i < _wavesInfo.Length; i++)
-        {
+        {  
             _wavesInfo[i].travelAngle = UnityEngine.Random.Range(0, 360);
         }
     }

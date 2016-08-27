@@ -6,11 +6,11 @@ Material:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
-  m_Name: LowPolyWater
-  m_Shader: {fileID: 4800000, guid: bcab6464d7ac8074097c392afbb8128a, type: 3}
+  m_Name: StandardYellow
+  m_Shader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
   m_ShaderKeywords: 
   m_LightmapFlags: 5
-  m_CustomRenderQueue: 3000
+  m_CustomRenderQueue: -1
   stringTagMap: {}
   m_SavedProperties:
     serializedVersion: 2
@@ -32,13 +32,6 @@ Material:
       data:
         first:
           name: _DetailNormalMap
-        second:
-          m_Texture: {fileID: 0}
-          m_Scale: {x: 1, y: 1}
-          m_Offset: {x: 0, y: 0}
-      data:
-        first:
-          name: _AlbedoTex
         second:
           m_Texture: {fileID: 0}
           m_Scale: {x: 1, y: 1}
@@ -85,13 +78,6 @@ Material:
           m_Texture: {fileID: 0}
           m_Scale: {x: 1, y: 1}
           m_Offset: {x: 0, y: 0}
-      data:
-        first:
-          name: _Cube
-        second:
-          m_Texture: {fileID: 0}
-          m_Scale: {x: 1, y: 1}
-          m_Offset: {x: 0, y: 0}
     m_Floats:
       data:
         first:
@@ -105,10 +91,6 @@ Material:
         first:
           name: _Cutoff
         second: 0.5
-      data:
-        first:
-          name: _Shininess
-        second: 10
       data:
         first:
           name: _Parallax
@@ -145,22 +127,6 @@ Material:
         first:
           name: _Metallic
         second: 0
-      data:
-        first:
-          name: _Height
-        second: 0
-      data:
-        first:
-          name: _Waves
-        second: 4
-      data:
-        first:
-          name: _Alpha
-        second: 1
-      data:
-        first:
-          name: _FresnelPower
-        second: 5
     m_Colors:
       data:
         first:
@@ -169,16 +135,4 @@ Material:
       data:
         first:
           name: _Color
-        second: {r: 0, g: 0.83448267, b: 1, a: 1}
-      data:
-        first:
-          name: _SpecColor
-        second: {r: 1, g: 1, b: 1, a: 1}
-      data:
-        first:
-          name: _AlbedoColor
-        second: {r: 0.2647059, g: 0.8782961, b: 1, a: 0.872}
-      data:
-        first:
-          name: _SpecularColor
-        second: {r: 0, g: 1, b: 0.8758622, a: 1}
+        second: {r: 0.5955882, g: 0.5414658, b: 0.3153114, a: 1}
