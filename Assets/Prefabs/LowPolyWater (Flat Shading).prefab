@@ -27,7 +27,7 @@ Transform:
   m_GameObject: {fileID: 147632}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3, y: 3, z: 3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_Children: []
   m_Father: {fileID: 0}
@@ -64,7 +64,7 @@ MeshFilter:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 147632}
-  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 0}
 --- !u!114 &11400216
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -93,8 +93,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5a1f029e13f9514ab53a4d0f37346dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _sineWaves: {fileID: 11400000, guid: fc6be2d1d83388647806ebc5dc1bc2c7, type: 2}
-  _updateMaterialPerFrame: 0
+  _sineWaves: {fileID: 11400000, guid: ce791cc57dee0ad4fae171be69560473, type: 2}
+  _updateMaterialPerFrame: 1
+  _subdivideMesh: 0
+  _restoreOriginalMesh: 0
 --- !u!1001 &100100000
 Prefab:
   m_ObjectHideFlags: 1
