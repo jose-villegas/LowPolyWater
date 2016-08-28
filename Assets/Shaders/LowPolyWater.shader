@@ -48,16 +48,17 @@
         Pass
         {
         	Tags{ "RenderMode" = "Opaque" "Queue" = "Geometry" "LightMode" = "ForwardBase" }
+        	Cull Off
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
             #pragma geometry geom
             #pragma multi_compile_fwdbase nolightmap nodirlightmap nodynlightmap novertexlight
-            // shadow helper functions and macros
-            #include "AutoLight.cginc"
-            #include "UnityCG.cginc"
-            #include "Lighting.cginc"
-          
+			// shadow helper functions and macros
+			#include "AutoLight.cginc"
+			#include "UnityCG.cginc"
+			#include "Lighting.cginc"
+
             struct VS_Input
             {
                 float4 vertex : POSITION;
@@ -165,7 +166,6 @@
                     OutputStream.Append(test);
                 }
             }
-
             fixed4 frag(VS_Output i) : SV_Target
             {
             	float4 refl = tex2Dproj(_ReflectionTex, UNITY_PROJ_COORD(i.refl));

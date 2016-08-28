@@ -28,8 +28,7 @@ public class LowPolyWaterReflection : MonoBehaviour
     public void OnWillRenderObject()
     {
         var rend = GetComponent<Renderer>();
-        // consider dropping ExecuteInEditMode update and using material
-        // for different water planes for now sharedmMaterial serves properly
+
         if (!enabled || !rend || !rend.sharedMaterial || !rend.enabled)
             return;
 

@@ -6,7 +6,7 @@ Material:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
-  m_Name: LowPolyWater
+  m_Name: LowPolyWater (Base)
   m_Shader: {fileID: 4800000, guid: 76d61687be8bc3244a3d30ee83472d72, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 5
@@ -39,6 +39,13 @@ Material:
       data:
         first:
           name: _AlbedoTex
+        second:
+          m_Texture: {fileID: 0}
+          m_Scale: {x: 1, y: 1}
+          m_Offset: {x: 0, y: 0}
+      data:
+        first:
+          name: _ReflectionTex
         second:
           m_Texture: {fileID: 0}
           m_Scale: {x: 1, y: 1}
@@ -92,13 +99,6 @@ Material:
           m_Texture: {fileID: 0}
           m_Scale: {x: 1, y: 1}
           m_Offset: {x: 0, y: 0}
-      data:
-        first:
-          name: _ReflectionTex
-        second:
-          m_Texture: {fileID: 0}
-          m_Scale: {x: 1, y: 1}
-          m_Offset: {x: 0, y: 0}
     m_Floats:
       data:
         first:
@@ -115,7 +115,19 @@ Material:
       data:
         first:
           name: _Shininess
-        second: 10
+        second: 80
+      data:
+        first:
+          name: _Alpha
+        second: 1
+      data:
+        first:
+          name: _FresnelPower
+        second: 5
+      data:
+        first:
+          name: _Reflectivity
+        second: 0.15
       data:
         first:
           name: _Parallax
@@ -160,18 +172,6 @@ Material:
         first:
           name: _Waves
         second: 6
-      data:
-        first:
-          name: _Alpha
-        second: 1
-      data:
-        first:
-          name: _FresnelPower
-        second: 5
-      data:
-        first:
-          name: _Reflectivity
-        second: 0.15
     m_Colors:
       data:
         first:

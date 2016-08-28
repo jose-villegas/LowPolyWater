@@ -11,33 +11,15 @@ public class LowPolyWater : MonoBehaviour
     private bool _updateMaterialPerFrame;
     [Header("Quad Detail"), SerializeField, InspectorButton("SubdivideMesh")]
     private bool _subdivideMesh;
-    [SerializeField, InspectorButton("RestoreOriginalMesh")]
-    private bool _restoreOriginalMesh;
-
     private Material _lowPolyWater = null;
-    private Mesh _original;
 
     void SubdivideMesh()
     {
         Mesh current = GetComponent<MeshFilter>().sharedMesh;
-
-        if (null == _original)
-        {
-            _original = current;
-        }
-
         Mesh newMesh = Instantiate(current) as Mesh;
-        newMesh.name = current.name + newMesh.GetInstanceID();
+        newMesh.name = current.name;
         MeshHelper.Subdivide4(newMesh);
         GetComponent<MeshFilter>().sharedMesh = newMesh;
-    }
-
-    void RestoreOriginalMesh()
-    {
-        if (null != _original)
-        {
-            GetComponent<MeshFilter>().sharedMesh = _original;
-        }
     }
 
     // Use this for initialization
@@ -50,7 +32,7 @@ public class LowPolyWater : MonoBehaviour
             return;
         }
 
-        _lowPolyWater = GetComponent<Renderer>().material;
+        _lowPolyWater = GetComponent<Renderer>().sharedMaterial;
 
         if (!_lowPolyWater)
         {
@@ -77,7 +59,7 @@ public class LowPolyWater : MonoBehaviour
 
     void Update()
     {
-        if (_updateMaterialPerFrame && Application.isPlaying)
+        if (_updateMaterialPerFrame)
         {
             // set general uniforms
             _lowPolyWater.SetInt("_Waves", _sineWaves.Length);

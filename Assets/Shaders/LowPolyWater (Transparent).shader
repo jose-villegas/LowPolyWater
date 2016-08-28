@@ -44,10 +44,11 @@ Shader "LowPolyWater/Transparent"
 	ENDCG
     SubShader
     {
+    	Tags{ "Queue" = "Transparent" }
         LOD 200
         Pass
         {
-            Tags{ "RenderMode" = "Transparent" "Queue" = "Transparent" "LightMode" = "ForwardBase" }
+            Tags{ "RenderMode" = "Transparent" "LightMode" = "ForwardBase" }
      		Cull Front
          	ZWrite Off
         	Blend SrcAlpha OneMinusSrcAlpha
@@ -184,7 +185,7 @@ Shader "LowPolyWater/Transparent"
         }
 		Pass
         {
-        	Tags{ "RenderMode" = "Transparent" "Queue" = "Transparent" "LightMode" = "ForwardBase" }
+        	Tags{ "RenderMode" = "Transparent" "LightMode" = "ForwardBase" }
      		Cull Back
          	ZWrite Off
         	Blend SrcAlpha OneMinusSrcAlpha
