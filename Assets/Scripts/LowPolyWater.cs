@@ -9,7 +9,36 @@ public class LowPolyWater : MonoBehaviour
     private SineWaves _sineWaves = null;
     [SerializeField, Tooltip("Useful for testing sine wave setups")]
     private bool _updateMaterialPerFrame;
+    [Header("Quad Detail"), SerializeField, InspectorButton("SubdivideMesh")]
+    private bool _subdivideMesh;
+    [SerializeField, InspectorButton("RestoreOriginalMesh")]
+    private bool _restoreOriginalMesh;
+
     private Material _lowPolyWater = null;
+    private Mesh _original;
+
+    void SubdivideMesh()
+    {
+        Mesh current = GetComponent<MeshFilter>().sharedMesh;
+
+        if (null == _original)
+        {
+            _original = current;
+        }
+
+        Mesh newMesh = Instantiate(current) as Mesh;
+        newMesh.name = current.name + newMesh.GetInstanceID();
+        MeshHelper.Subdivide4(newMesh);
+        GetComponent<MeshFilter>().sharedMesh = newMesh;
+    }
+
+    void RestoreOriginalMesh()
+    {
+        if (null != _original)
+        {
+            GetComponent<MeshFilter>().sharedMesh = _original;
+        }
+    }
 
     // Use this for initialization
     void Start()

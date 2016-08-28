@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a54e65bd0d42bfa4b915f601c668049b, type: 3}
+  m_Name: RiverWater
+  m_EditorClassIdentifier: 
+  _timescale: 3
+  _waves: 4
+  _wavesInfo:
+  - amplitude: 0.1
+    waveLength: 2
+    speed: 1
+    travelAngle: 287
+    sharpness: 5
+  - amplitude: 0.12
+    waveLength: 2
+    speed: 4
+    travelAngle: 335
+    sharpness: 6
+  - amplitude: 0.095
+    waveLength: 1.5
+    speed: 1
+    travelAngle: 85
+    sharpness: 8
+  - amplitude: 0.1
+    waveLength: 2
+    speed: 2
+    travelAngle: 137
+    sharpness: 1
+  assignRandomDirections: 0

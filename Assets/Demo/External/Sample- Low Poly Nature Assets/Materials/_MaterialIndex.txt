@@ -1,0 +1,22 @@
+This list details all materials that come standard with the asset pack
+
+Material ID          Hexadecimal          Emissive Hexadecimal
+-----------          -----------          --------------------
+A.
+AutumnLeaves1        FF7700(FF)           N/A
+AutumnLeaves2        CC5817(FF)           N/A
+
+B.
+Berries              85443F(FF)           N/A
+Black                000000(FF)           N/A
+
+L.
+Leaves1              33630F(FF)           N/A
+
+R.
+Red                  FF0000(FF)           N/A
+Rock                 4E4C4B(FF)           N/A
+
+W.
+White                FFFFFF(FF)           N/A
+Wood                 CDB386(FF)           N/A
