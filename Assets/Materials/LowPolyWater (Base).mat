@@ -171,7 +171,11 @@ Material:
       data:
         first:
           name: _Waves
-        second: 6
+        second: 4
+      data:
+        first:
+          name: _Disturbance
+        second: 10
     m_Colors:
       data:
         first:

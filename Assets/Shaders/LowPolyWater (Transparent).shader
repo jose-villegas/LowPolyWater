@@ -8,9 +8,45 @@ Shader "LowPolyWater/Transparent"
        	_Shininess ("Shininess", Float) = 10
        	_FresnelPower ("Fresnel Power", Float) = 5
        	_Reflectivity ("Reflectivity", Range(0.0, 1.0)) = 0.15
+       	_Disturbance ("Disturbance", Float) = 10
 		[HideInInspector] _ReflectionTex ("", 2D) = "white" {}
     }
 	CGINCLUDE
+        // shadow helper functions and macros
+		#include "AutoLight.cginc"
+		#include "UnityCG.cginc"
+		#include "Lighting.cginc"
+
+        struct VS_Input
+        {
+            float4 vertex : POSITION;
+            float3 normal : NORMAL;
+            float2 uv : TEXCOORD0;
+        };
+        struct VS_Output
+        {
+            float4 pos : SV_POSITION;
+            float2 uv : TEXCOORD0;
+            float4 _ShadowCoord : TEXCOORD1; // put shadows data into TEXCOORD1
+            float3 posWorld : WORLDPOSITION;
+            float3 normalDir : NORMAL;
+            float3 viewDir : VIEWDIRECTION;
+			float4 refl : REFLECTION;
+            float3 ambient : AMBIENT;
+            float3 diffuse : DIFFUSE;
+            float3 specular : SPECULAR;
+        };
+        static const float PI = float(3.14159);
+        // properties input
+        sampler2D _AlbedoTex;
+        sampler2D _ReflectionTex;
+        float4 _AlbedoTex_ST;
+        fixed4 _AlbedoColor;
+        fixed4 _SpecularColor;
+        float _Shininess;
+        float _FresnelPower;
+        float _Reflectivity;
+        float _Disturbance;
         // SineWave definition
         // _SineWave0: x = amplitude, y = frequency, z = phase
         // _SineWave1: xy = travel direction, z = sharpness
@@ -22,12 +58,45 @@ Shader "LowPolyWater/Transparent"
         // check: http://http.developer.nvidia.com/GPUGems/gpugems_ch01.html
         float Wave(int i, float x, float y)
         {
-            float A = _SineWave0[i].x; 										// amplitude
-			float O = _SineWave0[i].y; 										// frequency
-            float P = _SineWave0[i].z; 										// phase
-        	float2 D = _SineWave1[i].xy;									// direction
-            float sine = sin(dot(D, float2(x,y)) * O + _Time.x * _TimeScale * P);
+            float A = _SineWave0[i].x; 		// amplitude
+			float O = _SineWave0[i].y; 		// frequency
+            float P = _SineWave0[i].z; 		// phase
+        	float2 D = _SineWave1[i].xy;	// direction
+            float sine = sin(dot(D, float2(x, y)) * O + _Time.x * _TimeScale * P);
             return 2.0f * A * pow((sine + 1.0f) / 2.0f, _SineWave1[i].z);
+        }
+        float dxWave(int i, float x, float y)
+        {
+            float A = _SineWave0[i].x; 		// amplitude
+			float O = _SineWave0[i].y; 		// frequency
+            float P = _SineWave0[i].z; 		// phase
+        	float2 D = _SineWave1[i].xy;	// direction
+			float term = dot(D, float2(x, y)) * O + _Time.x * _TimeScale * P;
+			float sinP = pow((sin(term) + 1.0f) / 2.0f,  _SineWave1[i].z - 1.0f);
+			return _SineWave1[i].z * D.x * O * A * sinP * cos(term);
+        }
+        float dzWave(int i, float x, float y)
+        {
+            float A = _SineWave0[i].x; 		// amplitude
+			float O = _SineWave0[i].y; 		// frequency
+            float P = _SineWave0[i].z; 		// phase
+        	float2 D = _SineWave1[i].xy;	// direction
+			float term = dot(D, float2(x, y)) * O + _Time.x * _TimeScale * P;
+			float sinP = pow((sin(term) + 1.0f) / 2.0f,  _SineWave1[i].z - 1.0f);
+			return _SineWave1[i].z * D.y * O * A * sinP * cos(term);
+        }
+        float3 WaveNormal(float x, float y)
+        {
+        	float dx = 0.0f;
+        	float dz = 0.0f;
+
+        	for(int i = 0; i < _Waves; i++)
+        	{
+        		dx += dxWave(i, x, y);
+        		dz += dzWave(i, x, y);
+        	}
+
+        	return normalize(float3(-dx, 1.0f, -dz));
         }
         // sum of sines wave transform
         float WaveHeight(float x, float y)
@@ -57,43 +126,6 @@ Shader "LowPolyWater/Transparent"
             #pragma fragment frag
             #pragma geometry geom
             #pragma multi_compile_fwdbase nolightmap nodirlightmap nodynlightmap novertexlight
-            // shadow helper functions and macros
-            #include "AutoLight.cginc"
-            #include "UnityCG.cginc"
-            #include "Lighting.cginc"
-          
-            struct VS_Input
-            {
-                float4 vertex : POSITION;
-                float3 normal : NORMAL;
-                float2 uv : TEXCOORD0;
-            };
-
-            struct VS_Output
-            {
-                float4 pos : SV_POSITION;
-                float2 uv : TEXCOORD0;
-                float4 _ShadowCoord : TEXCOORD1; // put shadows data into TEXCOORD1
-                float3 posWorld : WORLDPOSITION;
-                float3 normalDir : NORMAL;
-                float3 viewDir : VIEWDIRECTION;
-				float4 refl : REFLECTION;
-                float3 ambient : AMBIENT;
-                float3 diffuse : DIFFUSE;
-                float3 specular : SPECULAR;
-            };
-
-            static const float PI = float(3.14159);
-
-            // properties input
-            sampler2D _AlbedoTex;
-            sampler2D _ReflectionTex;
-            float4 _AlbedoTex_ST;
-            fixed4 _AlbedoColor;
-            fixed4 _SpecularColor;
-            float _Shininess;
-            float _FresnelPower;
-            float _Reflectivity;
 
             VS_Output vert(VS_Input v)
             {
@@ -104,12 +136,15 @@ Shader "LowPolyWater/Transparent"
                 o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
                 o.posWorld = mul(_Object2World, v.vertex).xyz;
                 o.uv = TRANSFORM_TEX(v.uv, _AlbedoTex);
-                o.normalDir = v.normal;
                 o.viewDir = normalize(_WorldSpaceCameraPos - o.posWorld);
                 // compute shadows data
         		TRANSFER_SHADOW(o)
         		// reflection
-        		o.refl = ComputeScreenPos(o.pos);
+        		float3 wNormal = UnityObjectToWorldNormal(fixed4(WaveNormal(v.vertex.x, v.vertex.z), 0.0f));
+        		float4 dPos = o.pos;
+        		dPos.x += _Disturbance * wNormal.x;
+        		dPos.z += _Disturbance * wNormal.z;
+        		o.refl = ComputeScreenPos(dPos);
                 return o;
             }
 
@@ -194,43 +229,6 @@ Shader "LowPolyWater/Transparent"
             #pragma fragment frag
             #pragma geometry geom
             #pragma multi_compile_fwdbase nolightmap nodirlightmap nodynlightmap novertexlight
-            // shadow helper functions and macros
-            #include "AutoLight.cginc"
-            #include "UnityCG.cginc"
-            #include "Lighting.cginc"
-          
-            struct VS_Input
-            {
-                float4 vertex : POSITION;
-                float3 normal : NORMAL;
-                float2 uv : TEXCOORD0;
-            };
-
-            struct VS_Output
-            {
-                float4 pos : SV_POSITION;
-                float2 uv : TEXCOORD0;
-                float4 _ShadowCoord : TEXCOORD1; // put shadows data into TEXCOORD1
-                float3 posWorld : WORLDPOSITION;
-                float3 normalDir : NORMAL;
-                float3 viewDir : VIEWDIRECTION;
-				float4 refl : REFLECTION;
-                float3 ambient : AMBIENT;
-                float3 diffuse : DIFFUSE;
-                float3 specular : SPECULAR;
-            };
-
-            static const float PI = float(3.14159);
-
-            // properties input
-            sampler2D _AlbedoTex;
-            sampler2D _ReflectionTex;
-            float4 _AlbedoTex_ST;
-            fixed4 _AlbedoColor;
-            fixed4 _SpecularColor;
-            float _Shininess;
-            float _FresnelPower;
-            float _Reflectivity;
 
             VS_Output vert(VS_Input v)
             {
@@ -241,12 +239,15 @@ Shader "LowPolyWater/Transparent"
                 o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
                 o.posWorld = mul(_Object2World, v.vertex).xyz;
                 o.uv = TRANSFORM_TEX(v.uv, _AlbedoTex);
-                o.normalDir = v.normal;
                 o.viewDir = normalize(_WorldSpaceCameraPos - o.posWorld);
                 // compute shadows data
         		TRANSFER_SHADOW(o)
         		// reflection
-        		o.refl = ComputeScreenPos(o.pos);
+        		float3 wNormal = UnityObjectToWorldNormal(fixed4(WaveNormal(v.vertex.x, v.vertex.z), 0.0f));
+        		float4 dPos = o.pos;
+        		dPos.x += _Disturbance * wNormal.x;
+        		dPos.z += _Disturbance * wNormal.z;
+        		o.refl = ComputeScreenPos(dPos);
                 return o;
             }
 
@@ -322,7 +323,7 @@ Shader "LowPolyWater/Transparent"
         }
         Pass
         {
-            Tags { "LightMode"="ShadowCaster" }
+            Tags { "LightMode" = "ShadowCaster" }
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag

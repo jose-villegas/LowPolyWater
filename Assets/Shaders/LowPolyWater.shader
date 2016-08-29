@@ -8,6 +8,7 @@
        	_Shininess ("Shininess", Float) = 10
        	_FresnelPower ("Fresnel Power", Float) = 5
        	_Reflectivity ("Reflectivity", Range(0.0, 1.0)) = 0.15
+       	_Disturbance ("Disturbance", Float) = 10
 		[HideInInspector] _ReflectionTex ("", 2D) = "white" {}
     }
 	CGINCLUDE
@@ -22,12 +23,45 @@
         // check: http://http.developer.nvidia.com/GPUGems/gpugems_ch01.html
         float Wave(int i, float x, float y)
         {
-            float A = _SineWave0[i].x; 										// amplitude
-			float O = _SineWave0[i].y; 										// frequency
-            float P = _SineWave0[i].z; 										// phase
-        	float2 D = _SineWave1[i].xy;									// direction
-            float sine = sin(dot(D, float2(x,y)) * O + _Time.x * _TimeScale * P);
+            float A = _SineWave0[i].x; 		// amplitude
+			float O = _SineWave0[i].y; 		// frequency
+            float P = _SineWave0[i].z; 		// phase
+        	float2 D = _SineWave1[i].xy;	// direction
+            float sine = sin(dot(D, float2(x, y)) * O + _Time.x * _TimeScale * P);
             return 2.0f * A * pow((sine + 1.0f) / 2.0f, _SineWave1[i].z);
+        }
+        float dxWave(int i, float x, float y)
+        {
+            float A = _SineWave0[i].x; 		// amplitude
+			float O = _SineWave0[i].y; 		// frequency
+            float P = _SineWave0[i].z; 		// phase
+        	float2 D = _SineWave1[i].xy;	// direction
+			float term = dot(D, float2(x, y)) * O + _Time.x * _TimeScale * P;
+			float sinP = pow((sin(term) + 1.0f) / 2.0f,  _SineWave1[i].z - 1.0f);
+			return _SineWave1[i].z * D.x * O * A * sinP * cos(term);
+        }
+        float dzWave(int i, float x, float y)
+        {
+            float A = _SineWave0[i].x; 		// amplitude
+			float O = _SineWave0[i].y; 		// frequency
+            float P = _SineWave0[i].z; 		// phase
+        	float2 D = _SineWave1[i].xy;	// direction
+			float term = dot(D, float2(x, y)) * O + _Time.x * _TimeScale * P;
+			float sinP = pow((sin(term) + 1.0f) / 2.0f,  _SineWave1[i].z - 1.0f);
+			return _SineWave1[i].z * D.y * O * A * sinP * cos(term);
+        }
+        float3 WaveNormal(float x, float y)
+        {
+        	float dx = 0.0f;
+        	float dz = 0.0f;
+
+        	for(int i = 0; i < _Waves; i++)
+        	{
+        		dx += dxWave(i, x, y);
+        		dz += dzWave(i, x, y);
+        	}
+
+        	return normalize(float3(-dx, 1.0f, -dz));
         }
         // sum of sines wave transform
         float WaveHeight(float x, float y)
@@ -91,6 +125,7 @@
             float _Shininess;
             float _FresnelPower;
             float _Reflectivity;
+            float _Disturbance;
 
             VS_Output vert(VS_Input v)
             {
@@ -101,12 +136,15 @@
                 o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
                 o.posWorld = mul(_Object2World, v.vertex).xyz;
                 o.uv = TRANSFORM_TEX(v.uv, _AlbedoTex);
-                o.normalDir = v.normal;
                 o.viewDir = normalize(_WorldSpaceCameraPos - o.posWorld);
                 // compute shadows data
         		TRANSFER_SHADOW(o)
         		// reflection
-        		o.refl = ComputeScreenPos(o.pos);
+        		float3 wNormal = UnityObjectToWorldNormal(fixed4(WaveNormal(v.vertex.x, v.vertex.z), 0.0f));
+        		float4 dPos = o.pos;
+        		dPos.x += _Disturbance * wNormal.x;
+        		dPos.z += _Disturbance * wNormal.z;
+        		o.refl = ComputeScreenPos(dPos);
                 return o;
             }
 

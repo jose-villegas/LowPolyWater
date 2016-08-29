@@ -15,33 +15,33 @@ MonoBehaviour:
   _waves: 6
   _wavesInfo:
   - amplitude: 2
-    waveLength: 0.7
-    speed: 2
-    travelAngle: 234
+    waveLength: 5
+    speed: 1
+    travelAngle: 198
     sharpness: 3
   - amplitude: 2
-    waveLength: 1
-    speed: 1
-    travelAngle: 163
+    waveLength: 3
+    speed: 3
+    travelAngle: 113
     sharpness: 5
   - amplitude: 1.8
-    waveLength: 4.85
-    speed: 2.32
+    waveLength: 5
+    speed: 3
     travelAngle: 261
     sharpness: 12
-  - amplitude: 2
+  - amplitude: 1
+    waveLength: 8
+    speed: 1
+    travelAngle: 127
+    sharpness: 7
+  - amplitude: 5
+    waveLength: 12
+    speed: 3
+    travelAngle: 43
+    sharpness: 8
+  - amplitude: 3
     waveLength: 5
     speed: 1
-    travelAngle: 111
-    sharpness: 7
-  - amplitude: 1
-    waveLength: 5
-    speed: 2
-    travelAngle: 142
-    sharpness: 1.5
-  - amplitude: 1.7
-    waveLength: 7
-    speed: 2
-    travelAngle: 333
-    sharpness: 5
+    travelAngle: 44
+    sharpness: 6
   assignRandomDirections: 0
