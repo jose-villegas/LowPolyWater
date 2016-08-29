@@ -119,6 +119,10 @@ Material:
         second: 0.15
       data:
         first:
+          name: _Disturbance
+        second: 10
+      data:
+        first:
           name: _Parallax
         second: 0.02
       data:
@@ -169,10 +173,6 @@ Material:
         first:
           name: _AO
         second: 2.4
-      data:
-        first:
-          name: _Disturbance
-        second: 10
     m_Colors:
       data:
         first:
