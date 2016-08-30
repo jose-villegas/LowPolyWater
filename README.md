@@ -7,4 +7,4 @@ https://imgur.com/U7PyrRZ (Short video)
 
 ![Screenshot](https://i.imgur.com/p1jsnbM.jpg)
 
-![Screenshot](https://i.imgur.com/LZ9Z94N.png)
+![Screenshot](https://i.imgur.com/xNbvi5e.png)
