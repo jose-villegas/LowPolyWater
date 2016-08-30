@@ -43,6 +43,7 @@ Shader "LowPolyWater/Transparent"
             half2 uv : TEXCOORD0;
             half4 _ShadowCoord : TEXCOORD1; // put shadows data into TEXCOORD1
             half4 screenPos : REFLECTION;
+            half3 waveNormal : WAVENORMAL;
         };
 
         static const float PI = float(3.14159);
@@ -76,23 +77,25 @@ Shader "LowPolyWater/Transparent"
         }
         float dxWave(int i, float x, float y)
         {
-            float A = _SineWave0[i].x; 		// amplitude
-			float O = _SineWave0[i].y; 		// frequency
-            float P = _SineWave0[i].z; 		// phase
-        	half2 D = _SineWave1[i].xy;	// direction
-			float term = dot(D, half2(x, y)) * O + _Time.x * _TimeScale * P;
-			float sinP = pow((sin(term) + 1.0f) / 2.0f,  _SineWave1[i].z - 1.0f);
-			return _SineWave1[i].z * D.x * O * A * sinP * cos(term);
+            float A = _SineWave0[i].x;      // amplitude
+            float O = _SineWave0[i].y;      // frequency
+            float P = _SineWave0[i].z;      // phase
+            half2 D = _SineWave1[i].xy; // direction
+            float term = dot(D, half2(x, y)) * O + _Time.x * _TimeScale * P;
+            float power = max(1.0f, _SineWave1[i].z - 1.0f);
+            float sinP = pow((sin(term) + 1.0f) / 2.0f, power);
+            return _SineWave1[i].z * D.x * O * A * sinP * cos(term);
         }
         float dzWave(int i, float x, float y)
         {
-            float A = _SineWave0[i].x; 		// amplitude
-			float O = _SineWave0[i].y; 		// frequency
-            float P = _SineWave0[i].z; 		// phase
-        	half2 D = _SineWave1[i].xy;	// direction
-			float term = dot(D, half2(x, y)) * O + _Time.x * _TimeScale * P;
-			float sinP = pow((sin(term) + 1.0f) / 2.0f,  _SineWave1[i].z - 1.0f);
-			return _SineWave1[i].z * D.y * O * A * sinP * cos(term);
+            float A = _SineWave0[i].x;      // amplitude
+            float O = _SineWave0[i].y;      // frequency
+            float P = _SineWave0[i].z;      // phase
+            half2 D = _SineWave1[i].xy; // direction
+            float term = dot(D, half2(x, y)) * O + _Time.x * _TimeScale * P;
+            float power = max(1.0f, _SineWave1[i].z - 1.0f);
+            float sinP = pow((sin(term) + 1.0f) / 2.0f, power);
+            return _SineWave1[i].z * D.y * O * A * sinP * cos(term);
         }
         half3 WaveNormal(float x, float y)
         {
@@ -148,10 +151,10 @@ Shader "LowPolyWater/Transparent"
                 // compute shadows data
                 TRANSFER_SHADOW(o)
                 // reflection
-                half3 wNormal = UnityObjectToWorldNormal(half4(WaveNormal(v.vertex.x, v.vertex.z), 0.0f));
+                o.waveNormal = UnityObjectToWorldNormal(half4(WaveNormal(v.vertex.x, v.vertex.z), 0.0f));
                 half4 dPos = o.pos;
-                dPos.x += _Disturbance * wNormal.x;
-                dPos.z += _Disturbance * wNormal.z;
+                dPos.x += _Disturbance * o.waveNormal.x;
+                dPos.z += _Disturbance * o.waveNormal.z;
                 o.screenPos = ComputeScreenPos(dPos);
                 return o;
             }
@@ -160,16 +163,14 @@ Shader "LowPolyWater/Transparent"
             void geom(triangle VS_Output input[3], inout TriangleStream<GS_Output> OutputStream)
             {
                 GS_Output test = (GS_Output)0;
-                // obtain triangle normal
-                half3 planeNormal = normalize(cross(input[1].worldPos.xyz -
-                                                     input[0].worldPos.xyz,
-                                                     input[2].worldPos.xyz - 
-                                                     input[0].worldPos.xyz));
+                // average wave normal between the vertices
+                half3 waveFx = (input[0].waveNormal + input[1].waveNormal 
+                                + input[2].waveNormal) / 3.0f;
                 // average between the three triangle vertices
                 half3 center = (input[0].worldPos + input[1].worldPos 
                                 + input[2].worldPos) / 3.0f;
                 // shading
-                half3 normalDirection = UnityObjectToWorldNormal(half4(planeNormal, 0.0f));
+                half3 normalDirection = normalize(waveFx);
                 half3 lightDirection;
 
                 if (0.0 == _WorldSpaceLightPos0.w) // directional light?
@@ -214,6 +215,7 @@ Shader "LowPolyWater/Transparent"
                     OutputStream.Append(test);
                 }
             }
+
             half4 frag(GS_Output i) : SV_Target
             {
                 half4 refl = tex2Dproj(_ReflectionTex, UNITY_PROJ_COORD(i.screenPos));
@@ -251,10 +253,10 @@ Shader "LowPolyWater/Transparent"
                 // compute shadows data
                 TRANSFER_SHADOW(o)
                 // reflection
-                half3 wNormal = UnityObjectToWorldNormal(half4(WaveNormal(v.vertex.x, v.vertex.z), 0.0f));
+                o.waveNormal = UnityObjectToWorldNormal(half4(WaveNormal(v.vertex.x, v.vertex.z), 0.0f));
                 half4 dPos = o.pos;
-                dPos.x += _Disturbance * wNormal.x;
-                dPos.z += _Disturbance * wNormal.z;
+                dPos.x += _Disturbance * o.waveNormal.x;
+                dPos.z += _Disturbance * o.waveNormal.z;
                 o.screenPos = ComputeScreenPos(dPos);
                 return o;
             }
@@ -263,16 +265,14 @@ Shader "LowPolyWater/Transparent"
             void geom(triangle VS_Output input[3], inout TriangleStream<GS_Output> OutputStream)
             {
                 GS_Output test = (GS_Output)0;
-                // obtain triangle normal
-                half3 planeNormal = normalize(cross(input[1].worldPos.xyz -
-                                                     input[0].worldPos.xyz,
-                                                     input[2].worldPos.xyz - 
-                                                     input[0].worldPos.xyz));
+                // average wave normal between the vertices
+                half3 waveFx = (input[0].waveNormal + input[1].waveNormal 
+                                + input[2].waveNormal) / 3.0f;
                 // average between the three triangle vertices
                 half3 center = (input[0].worldPos + input[1].worldPos 
                                 + input[2].worldPos) / 3.0f;
                 // shading
-                half3 normalDirection = UnityObjectToWorldNormal(half4(planeNormal, 0.0f));
+                half3 normalDirection = normalize(waveFx);
                 half3 lightDirection;
 
                 if (0.0 == _WorldSpaceLightPos0.w) // directional light?
@@ -317,6 +317,7 @@ Shader "LowPolyWater/Transparent"
                     OutputStream.Append(test);
                 }
             }
+
             half4 frag(GS_Output i) : SV_Target
             {
                 half4 refl = tex2Dproj(_ReflectionTex, UNITY_PROJ_COORD(i.screenPos));
