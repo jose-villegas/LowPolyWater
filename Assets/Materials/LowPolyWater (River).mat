@@ -7,10 +7,10 @@ Material:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_Name: LowPolyWater (River)
-  m_Shader: {fileID: 4800000, guid: bcab6464d7ac8074097c392afbb8128a, type: 3}
+  m_Shader: {fileID: 4800000, guid: 76d61687be8bc3244a3d30ee83472d72, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 5
-  m_CustomRenderQueue: 3000
+  m_CustomRenderQueue: 2000
   stringTagMap: {}
   m_SavedProperties:
     serializedVersion: 2

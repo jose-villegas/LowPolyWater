@@ -177,7 +177,7 @@
 				}
 				else // point light or spot
 				{
-					half3 lightDir = normalize(_WorldSpaceLightPos0.xyz - center);
+					lightDirection = normalize(_WorldSpaceLightPos0.xyz - center);
 				}
 
 				// diffuse intensity
