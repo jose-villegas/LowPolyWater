@@ -32,7 +32,6 @@ Shader "LowPolyWater/Transparent"
             half3 ambient : AMBIENT;
             half3 diffuse : DIFFUSE;
             half3 specular : SPECULAR;
-            half4 _ShadowCoord : TEXCOORD1; // put shadows data into TEXCOORD1
             half4 screenPos : REFLECTION;
         };
 
@@ -41,7 +40,6 @@ Shader "LowPolyWater/Transparent"
             half4 pos : SV_POSITION;
             half3 worldPos : WORLDPOSITION;
             half2 uv : TEXCOORD0;
-            half4 _ShadowCoord : TEXCOORD1; // put shadows data into TEXCOORD1
             half4 screenPos : REFLECTION;
             half3 waveNormal : WAVENORMAL;
         };
@@ -137,7 +135,6 @@ Shader "LowPolyWater/Transparent"
             #pragma vertex vert
             #pragma fragment frag
             #pragma geometry geom
-            #pragma multi_compile_fwdbase nolightmap nodirlightmap nodynlightmap novertexlight
 
             VS_Output vert(VS_Input v)
             {
@@ -148,8 +145,6 @@ Shader "LowPolyWater/Transparent"
                 o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
                 o.worldPos = mul(_Object2World, v.vertex).xyz;
                 o.uv = TRANSFORM_TEX(v.uv, _AlbedoTex);
-                // compute shadows data
-                TRANSFER_SHADOW(o)
                 // reflection
                 o.waveNormal = UnityObjectToWorldNormal(half4(WaveNormal(v.vertex.x, v.vertex.z), 0.0f));
                 half4 dPos = o.pos;
@@ -210,7 +205,6 @@ Shader "LowPolyWater/Transparent"
                     test.ambient = ambient;
                     test.specular = specular;
                     test.diffuse = diffuse;
-                    test._ShadowCoord = input[i]._ShadowCoord;
                     test.screenPos = input[i].screenPos;
                     OutputStream.Append(test);
                 }
@@ -220,9 +214,7 @@ Shader "LowPolyWater/Transparent"
             {
                 half4 refl = tex2Dproj(_ReflectionTex, UNITY_PROJ_COORD(i.screenPos));
                 half4 col = tex2D(_AlbedoTex, i.uv);
-                // compute shadow attenuation (1.0 = fully lit, 0.0 = fully shadowed)
-                UNITY_LIGHT_ATTENUATION(attenuation, i, i.worldPos);
-                col.rgb *= i.ambient + (i.diffuse + i.specular) * attenuation;
+                col.rgb *= i.ambient + (i.diffuse + i.specular);
                 col.rgb = lerp(col.rgb, refl.rgb, _Reflectivity);
                 col.a *= _AlbedoColor.a;
                 return col;
@@ -312,7 +304,6 @@ Shader "LowPolyWater/Transparent"
                     test.ambient = ambient;
                     test.specular = specular;
                     test.diffuse = diffuse;
-                    test._ShadowCoord = input[i]._ShadowCoord;
                     test.screenPos = input[i].screenPos;
                     OutputStream.Append(test);
                 }
