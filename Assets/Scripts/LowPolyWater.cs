@@ -1,6 +1,4 @@
 ﻿using UnityEngine;
-using System.Collections;
-using System;
 
 [RequireComponent(typeof(MeshFilter), typeof(Renderer))]
 public class LowPolyWater : MonoBehaviour
@@ -8,22 +6,26 @@ public class LowPolyWater : MonoBehaviour
     [SerializeField]
     private SineWaves _sineWaves = null;
     [SerializeField, Tooltip("Useful for testing sine wave setups")]
-    private bool _updateMaterialPerFrame;
+    private bool _updateMaterialPerFrame = false;
     [Header("Quad Detail"), SerializeField, InspectorButton("SubdivideMesh")]
     private bool _subdivideMesh;
+
     private Material _lowPolyWater = null;
 
-    void SubdivideMesh()
+    /// <summary>
+    /// Subdivides each quad of the mesh for smaller quads
+    /// </summary>
+    private void SubdivideMesh()
     {
         Mesh current = GetComponent<MeshFilter>().sharedMesh;
-        Mesh newMesh = Instantiate(current) as Mesh;
+        Mesh newMesh = Instantiate(current);
         newMesh.name = current.name;
         MeshHelper.Subdivide4(newMesh);
         GetComponent<MeshFilter>().sharedMesh = newMesh;
     }
 
     // Use this for initialization
-    void Start()
+    private void Start()
     {
         // no waves info
         if (_sineWaves == null)
@@ -57,7 +59,7 @@ public class LowPolyWater : MonoBehaviour
         }
     }
 
-    void Update()
+    private void Update()
     {
         if (_updateMaterialPerFrame)
         {

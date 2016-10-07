@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using System.Collections;
 using System;
 
 [CreateAssetMenu(fileName = "Data", menuName = "Custom/Sine Waves", order = 1)]
@@ -24,7 +23,7 @@ public class SineWaves : ScriptableObject
     private SineWave[] _wavesInfo;
 
     [SerializeField, InspectorButton("AssignRandomDirections")]
-    private bool assignRandomDirections;
+    private bool _assignRandomDirections;
 
     public SineWave this [int index]
     {
