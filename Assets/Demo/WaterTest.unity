@@ -1059,6 +1059,68 @@ Transform:
 Transform:
   m_PrefabParentObject: {fileID: 456514, guid: 01bebc0732355504095ed95d90508654, type: 2}
   m_PrefabInternal: {fileID: 1745765867}
+--- !u!1001 &1512865811
+Prefab:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 480480, guid: 4cde5b03430abec4b96d211fbb5f8e05, type: 2}
+      propertyPath: m_LocalPosition.x
+      value: -60
+      objectReference: {fileID: 0}
+    - target: {fileID: 480480, guid: 4cde5b03430abec4b96d211fbb5f8e05, type: 2}
+      propertyPath: m_LocalPosition.y
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 480480, guid: 4cde5b03430abec4b96d211fbb5f8e05, type: 2}
+      propertyPath: m_LocalPosition.z
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 480480, guid: 4cde5b03430abec4b96d211fbb5f8e05, type: 2}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 480480, guid: 4cde5b03430abec4b96d211fbb5f8e05, type: 2}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 480480, guid: 4cde5b03430abec4b96d211fbb5f8e05, type: 2}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 480480, guid: 4cde5b03430abec4b96d211fbb5f8e05, type: 2}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 480480, guid: 4cde5b03430abec4b96d211fbb5f8e05, type: 2}
+      propertyPath: m_RootOrder
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 480480, guid: 4cde5b03430abec4b96d211fbb5f8e05, type: 2}
+      propertyPath: m_LocalScale.x
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 480480, guid: 4cde5b03430abec4b96d211fbb5f8e05, type: 2}
+      propertyPath: m_LocalScale.z
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 3388918, guid: 4cde5b03430abec4b96d211fbb5f8e05, type: 2}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 1861930238}
+    - target: {fileID: 2349918, guid: 4cde5b03430abec4b96d211fbb5f8e05, type: 2}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 2100000, guid: 0f42d11f0efc8c641a9fb3ff7529365f, type: 2}
+    - target: {fileID: 139778, guid: 4cde5b03430abec4b96d211fbb5f8e05, type: 2}
+      propertyPath: m_Name
+      value: LowPolyWater (1)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_ParentPrefab: {fileID: 100100000, guid: 4cde5b03430abec4b96d211fbb5f8e05, type: 2}
+  m_IsPrefabParent: 0
 --- !u!4 &1604495789 stripped
 Transform:
   m_PrefabParentObject: {fileID: 454398, guid: decc2ba5add7b984aab134a07b436422, type: 2}
