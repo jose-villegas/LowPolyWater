@@ -11,6 +11,10 @@ public class LowPolyWater : MonoBehaviour
     private bool _subdivideMesh;
 
     private Material _lowPolyWater = null;
+#if UNITY_5_4_OR_NEWER
+	private Vector4[] _SineWave0;
+	private Vector4[] _SineWave1;
+#endif
 
     /// <summary>
     /// Subdivides each quad of the mesh for smaller quads
@@ -45,6 +49,11 @@ public class LowPolyWater : MonoBehaviour
         // set general uniforms
         _lowPolyWater.SetInt("_Waves", _sineWaves.Length);
         _lowPolyWater.SetFloat("_TimeScale", _sineWaves.Timescale);
+#if UNITY_5_4_OR_NEWER
+		// reserve space for uniform array
+		_SineWave0 = new Vector4[_sineWaves.Length];
+		_SineWave1 = new Vector4[_sineWaves.Length];
+#endif
         // set simulation waves parameters
         for (int i = 0; i < _sineWaves.Length; i++)
         {
@@ -54,9 +63,19 @@ public class LowPolyWater : MonoBehaviour
             float radA = _sineWaves[i].travelAngle * Mathf.Deg2Rad;
             var d = new Vector2(Mathf.Sin(radA), Mathf.Cos(radA));
             var s = _sineWaves[i].sharpness;
+#if UNITY_5_4_OR_NEWER
+			_SineWave0[i] = new Vector4(a, f, p, 0);
+			_SineWave1[i] = new Vector4(d.x, d.y, s, 0);
+#elif
             _lowPolyWater.SetVector("_SineWave0" + i, new Vector4(a, f, p, 0));
             _lowPolyWater.SetVector("_SineWave1" + i, new Vector4(d.x, d.y, s, 0));
+#endif
         }
+#if UNITY_5_4_OR_NEWER
+		// pass parameters
+		_lowPolyWater.SetVectorArray("_SineWave0", _SineWave0);
+		_lowPolyWater.SetVectorArray("_SineWave1", _SineWave1);
+#endif
     }
 
     private void Update()
@@ -75,9 +94,20 @@ public class LowPolyWater : MonoBehaviour
                 float radA = _sineWaves[i].travelAngle * Mathf.Deg2Rad;
                 var d = new Vector2(Mathf.Sin(radA), Mathf.Cos(radA));
                 var s = _sineWaves[i].sharpness;
-                _lowPolyWater.SetVector("_SineWave0" + i, new Vector4(a, f, p, 0));
-                _lowPolyWater.SetVector("_SineWave1" + i, new Vector4(d.x, d.y, s, 0));
+#if UNITY_5_4_OR_NEWER
+				_SineWave0[i].Set(a, f, p, 0);
+				_SineWave1[i].Set(d.x, d.y, s, 0);
+#elif
+				_lowPolyWater.SetVector("_SineWave0" + i, new Vector4(a, f, p, 0));
+				_lowPolyWater.SetVector("_SineWave1" + i, new Vector4(d.x, d.y, s, 0));
+#endif
             }
+#if UNITY_5_4_OR_NEWER
+			// pass parameters
+			_lowPolyWater.SetVectorArray("_SineWave0", _SineWave0);
+			_lowPolyWater.SetVectorArray("_SineWave1", _SineWave1);
+#endif
         }
     }
+
 }

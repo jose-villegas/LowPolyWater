@@ -34,4 +34,4 @@ MonoBehaviour:
     speed: 1
     travelAngle: 137
     sharpness: 4
-  assignRandomDirections: 0
+  _assignRandomDirections: 0
