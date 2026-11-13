@@ -10,10 +10,14 @@ float4 _SineWave0[8];
 float4 _SineWave1[8];
 int _Waves;
 float _TimeScale;
+// Global clock override in _Time.x units (seconds / 20). Zero means use _Time;
+// the editor capture tools set it to render animation frames deterministically.
+float _LowPolyWaterTime;
 
 float WavePhase(int i, float2 xz)
 {
-    return dot(_SineWave1[i].xy, xz) * _SineWave0[i].y + _Time.x * _TimeScale * _SineWave0[i].z;
+    float time = _LowPolyWaterTime > 0 ? _LowPolyWaterTime : _Time.x;
+    return dot(_SineWave1[i].xy, xz) * _SineWave0[i].y + time * _TimeScale * _SineWave0[i].z;
 }
 
 // Displaces a point of the flat water mesh (object space, surface on the XZ plane).

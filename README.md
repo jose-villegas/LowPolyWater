@@ -2,7 +2,7 @@
 
 Stylised low poly water for Unity's Built-in Render Pipeline. Waves are a sum of sines or Gerstner waves displaced on the GPU. Flat shading gives every triangle its own facet. The water has volume: it tints, absorbs and refracts the terrain under it, and draws a foam line where it meets the shore. The demo island has baked soft shadows and global illumination.
 
-![Hero shot](Docs/hero.jpg)
+![The demo river with animated Gerstner waves](Docs/hero.gif)
 
 ## Then and now
 
@@ -90,8 +90,16 @@ Everything is set up by an editor command, so the bake can be reproduced or twea
 The same commands run from the command line, for example to re-bake and capture the README shot:
 
 ```bash
-Unity -batchmode -quit -projectPath . -executeMethod DemoTools.ConfigureAndBakeFromCommandLine -out Docs/hero.png
+Unity -batchmode -quit -projectPath . -executeMethod DemoTools.ConfigureAndBakeFromCommandLine -out Captures/baked.png
 ```
+
+The README animation is a numbered frame sequence on a fixed wave clock, encoded with ffmpeg:
+
+```bash
+Unity -batchmode -quit -projectPath . -executeMethod DemoTools.CaptureSequenceFromCommandLine -frames 112 -fps 24 -out Captures/sequence/frame
+```
+
+The last 16 frames are crossfaded into the first ones so the GIF loops without a jump.
 
 ## Third-party content
 

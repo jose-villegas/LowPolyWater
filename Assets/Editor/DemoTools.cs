@@ -259,6 +259,36 @@ public static class DemoTools
     }
 
     /// <summary>
+    /// Renders an animation of the main camera as numbered PNGs, stepping the wave clock:
+    /// -frames 96 -fps 24 -width 960 -height 540 -out Captures/sequence/frame
+    /// </summary>
+    public static void CaptureSequenceFromCommandLine()
+    {
+        EditorSceneManager.OpenScene(Arg("-scene", DemoScene));
+        ApplyKeywordOverrides();
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        int frames = int.Parse(Arg("-frames", "96"), inv);
+        float fps = float.Parse(Arg("-fps", "24"), inv);
+        int width = int.Parse(Arg("-width", "960"), inv);
+        int height = int.Parse(Arg("-height", "540"), inv);
+        var prefix = Arg("-out", Path.Combine(CaptureFolder, "sequence", "frame"));
+        const float start = 10.0f;  // seconds; any positive value, it only picks where the waves are
+        try
+        {
+            for (int i = 0; i < frames; i++)
+            {
+                // _Time.x units are seconds / 20.
+                Shader.SetGlobalFloat("_LowPolyWaterTime", (start + i / fps) / 20.0f);
+                Capture(prefix + "_" + i.ToString("D3") + ".png", width, height);
+            }
+        }
+        finally
+        {
+            Shader.SetGlobalFloat("_LowPolyWaterTime", 0.0f);
+        }
+    }
+
+    /// <summary>
     /// Unsaved lighting A/B: -variants "ambientIntensity,sunIntensity;..." -out Captures/variant
     /// </summary>
     public static void CaptureVariantsFromCommandLine()
