@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: WaterTest2OceanSkybox
+  m_Shader: {fileID: 4800000, guid: a873cee724ed7474a8e26e9dcddb9a55, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _Sky:
+        m_Texture: {fileID: 8900000, guid: a711ab061d514f84b98d2531d55e23c0, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _FacetSize: 2.5
+    - _FacetSpeed: 1.5
+    - _FacetTilt: 0.12
+    - _FresnelEnd: 353.5534
+    - _FresnelStart: 70.71068
+    - _HorizonSoftness: 0.002
+    - _Reflectivity: 0.25
+    - _WaterLevel: 6.865
+    m_Colors:
+    - _Center: {r: 50, g: 0, b: 50, a: 0}
+    - _WaterColor: {r: 0.063288465, g: 0.31519818, b: 0.4883681, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

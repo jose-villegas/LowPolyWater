@@ -77,7 +77,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _disablePixelLights: 1
-  _textureSize: 256
+  _resolutionScale: 0.75
   _clipPlaneOffset: 0.07
   _reflectLayers:
     serializedVersion: 2
