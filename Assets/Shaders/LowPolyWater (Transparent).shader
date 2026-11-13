@@ -1,5 +1,9 @@
-// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
-
+// Low poly water for the built-in render pipeline.
+// - Waves are displaced in the vertex stage (LowPolyWaves.cginc).
+// - Facets come from the screen-space derivatives of the displaced position, so the
+//   flat look needs no geometry shader and runs on every graphics API.
+// - With Depth Volume on, the water reads the camera depth texture to tint, absorb
+//   and refract what lies under it, and draws a foam band where it meets the shore.
 Shader "LowPolyWater/Transparent"
 {
     Properties
@@ -7,349 +11,171 @@ Shader "LowPolyWater/Transparent"
         _AlbedoTex("Albedo", 2D) = "white" {}
         _AlbedoColor("Albedo Color", Color) = (1, 1, 1, 1)
         _SpecularColor("Specular Color", Color) = (0, 0, 0, 0)
-       	_Shininess ("Shininess", Float) = 10
-       	_FresnelPower ("Fresnel Power", Float) = 5
-       	_Reflectivity ("Reflectivity", Range(0.0, 1.0)) = 0.15
-       	_Disturbance ("Disturbance", Float) = 10
-		[HideInInspector] _ReflectionTex ("", 2D) = "white" {}
+        _Shininess("Shininess", Float) = 10
+        _FresnelPower("Fresnel Power", Float) = 5
+        _Reflectivity("Reflectivity", Range(0.0, 1.0)) = 0.15
+        _Disturbance("Reflection Disturbance", Float) = 10
+
+        [Header(Volume)]
+        [Toggle(_WATER_VOLUME)] _Volume("Depth Volume", Float) = 1
+        _DeepColor("Deep Color", Color) = (0.06, 0.28, 0.42, 1)
+        _Absorption("Absorption per Unit (RGB)", Vector) = (0.35, 0.09, 0.06, 0)
+        _Refraction("Refraction", Range(0.0, 0.2)) = 0.03
+
+        [Header(Shore Foam)]
+        _FoamColor("Foam Color", Color) = (0.92, 0.98, 1, 0.75)
+        _FoamDistance("Foam Depth", Float) = 0.25
+        _FoamBands("Foam Bands", Range(1, 4)) = 2
+
+        [HideInInspector] _ReflectionTex("", 2D) = "white" {}
     }
-	CGINCLUDE
-        // shadow helper functions and macros
-		#include "AutoLight.cginc"
-		#include "UnityCG.cginc"
-		#include "Lighting.cginc"
 
-        struct VS_Input
-        {
-            half4 vertex : POSITION;
-            half3 normal : NORMAL;
-            half2 uv : TEXCOORD0;
-        };
-
-        struct GS_Output
-        {
-            half4 pos : SV_POSITION;
-            half3 worldPos : WORLDPOSITION;
-            half2 uv : TEXCOORD0;
-            half3 ambient : AMBIENT;
-            half3 diffuse : DIFFUSE;
-            half3 specular : SPECULAR;
-            half4 screenPos : REFLECTION;
-        };
-
-        struct VS_Output
-        {
-            half4 pos : SV_POSITION;
-            half3 worldPos : WORLDPOSITION;
-            half2 uv : TEXCOORD0;
-            half4 screenPos : REFLECTION;
-            half3 waveNormal : WAVENORMAL;
-        };
-
-        static const float PI = float(3.14159);
-        // properties input
-        sampler2D _AlbedoTex;
-        sampler2D _ReflectionTex;
-        half4 _AlbedoTex_ST;
-        half4 _AlbedoColor;
-        half4 _SpecularColor;
-        float _Shininess;
-        float _FresnelPower;
-        float _Reflectivity;
-        float _Disturbance;
-        // SineWave definition
-        // _SineWave0: x = amplitude, y = frequency, z = phase
-        // _SineWave1: xy = travel direction, z = sharpness
-        uniform half3 _SineWave0[8];
-        uniform half3 _SineWave1[8];
-        uniform int _Waves;
-        uniform float _TimeScale;
-        // physical model for water waves
-        // check: http://http.developer.nvidia.com/GPUGems/gpugems_ch01.html
-        float Wave(int i, float x, float y)
-        {
-            float A = _SineWave0[i].x; 		// amplitude
-			float O = _SineWave0[i].y; 		// frequency
-            float P = _SineWave0[i].z; 		// phase
-        	half2 D = _SineWave1[i].xy;	// direction
-            float sine = sin(dot(D, half2(x, y)) * O + _Time.x * _TimeScale * P);
-            return 2.0f * A * pow((sine + 1.0f) / 2.0f, _SineWave1[i].z);
-        }
-        float dxWave(int i, float x, float y)
-        {
-            float A = _SineWave0[i].x;      // amplitude
-            float O = _SineWave0[i].y;      // frequency
-            float P = _SineWave0[i].z;      // phase
-            half2 D = _SineWave1[i].xy; // direction
-            float term = dot(D, half2(x, y)) * O + _Time.x * _TimeScale * P;
-            float power = max(1.0f, _SineWave1[i].z - 1.0f);
-            float sinP = pow((sin(term) + 1.0f) / 2.0f, power);
-            return _SineWave1[i].z * D.x * O * A * sinP * cos(term);
-        }
-        float dzWave(int i, float x, float y)
-        {
-            float A = _SineWave0[i].x;      // amplitude
-            float O = _SineWave0[i].y;      // frequency
-            float P = _SineWave0[i].z;      // phase
-            half2 D = _SineWave1[i].xy; // direction
-            float term = dot(D, half2(x, y)) * O + _Time.x * _TimeScale * P;
-            float power = max(1.0f, _SineWave1[i].z - 1.0f);
-            float sinP = pow((sin(term) + 1.0f) / 2.0f, power);
-            return _SineWave1[i].z * D.y * O * A * sinP * cos(term);
-        }
-        half3 WaveNormal(float x, float y)
-        {
-        	float dx = 0.0f;
-        	float dz = 0.0f;
-
-        	for(int i = 0; i < _Waves; i++)
-        	{
-        		dx += dxWave(i, x, y);
-        		dz += dzWave(i, x, y);
-        	}
-
-        	return normalize(half3(-dx, 1.0f, -dz));
-        }
-        // sum of sines wave transform
-        float WaveHeight(float x, float y)
-        {
-            float height = 0.0;
-
-            for(int i = 0; i < _Waves; i++)
-            {
-                height += Wave(i, x, y);
-            }
-
-            return height;
-        }
-	ENDCG
     SubShader
     {
-    	Tags{ "Queue" = "Transparent" }
+        Tags { "Queue" = "Transparent" "RenderType" = "Transparent" "IgnoreProjector" = "True" }
         LOD 200
+
+        // Everything opaque drawn so far, shared by all water surfaces this frame.
+        GrabPass { "_WaterBackground" }
+
         Pass
         {
-            Tags{ "RenderMode" = "Transparent" "LightMode" = "ForwardBase" }
-     		Cull Front
-         	ZWrite Off
-        	Blend SrcAlpha OneMinusSrcAlpha
+            Tags { "LightMode" = "ForwardBase" }
+            Cull Back
+            ZWrite Off
+            Blend SrcAlpha OneMinusSrcAlpha
+
             CGPROGRAM
+            #pragma target 3.5
             #pragma vertex vert
             #pragma fragment frag
-            #pragma geometry geom
+            #pragma multi_compile_fog
+            #pragma multi_compile_local _ _WAVES_GERSTNER
+            #pragma shader_feature_local _WATER_VOLUME
 
-            VS_Output vert(VS_Input v)
-            {
-                VS_Output o = (VS_Output)0;
-                // Water simulation
-                v.vertex.xyz += v.normal * WaveHeight(v.vertex.x, v.vertex.z);
-                // Space transform
-                o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
-                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
-                o.uv = TRANSFORM_TEX(v.uv, _AlbedoTex);
-                // reflection
-                o.waveNormal = UnityObjectToWorldNormal(half4(WaveNormal(v.vertex.x, v.vertex.z), 0.0f));
-                half4 dPos = o.pos;
-                dPos.x += _Disturbance * o.waveNormal.x;
-                dPos.z += _Disturbance * o.waveNormal.z;
-                o.screenPos = ComputeScreenPos(dPos);
-                return o;
-            }
-
-            [maxvertexcount(3)]
-            void geom(triangle VS_Output input[3], inout TriangleStream<GS_Output> OutputStream)
-            {
-                GS_Output test = (GS_Output)0;
-                // average wave normal between the vertices
-                half3 waveFx = (input[0].waveNormal + input[1].waveNormal 
-                                + input[2].waveNormal) / 3.0f;
-                // average between the three triangle vertices
-                half3 center = (input[0].worldPos + input[1].worldPos 
-                                + input[2].worldPos) / 3.0f;
-                // shading
-                half3 normalDirection = normalize(waveFx);
-                half3 lightDirection;
-
-                if (0.0 == _WorldSpaceLightPos0.w) // directional light?
-                {
-                    lightDirection = normalize(_WorldSpaceLightPos0.xyz);
-                }
-                else // point light or spot
-                {
-                    lightDirection = normalize(_WorldSpaceLightPos0.xyz - center);
-                }
-
-                // diffuse intensity
-                float nDotL = dot(normalDirection, lightDirection);
-                half3 ambient = ShadeSH9(half4(normalDirection, 1.0f)) * _AlbedoColor.rgb;
-                half3 diffuse = _LightColor0.rgb * _AlbedoColor.rgb * max(0.0f, nDotL);
-                half3 specular = half3(0.0f, 0.0f, 0.0f);
-
-                if(nDotL > 0.0f)
-                {
-                    half3 viewDir = normalize(_WorldSpaceCameraPos - center);
-                    // half vector for blinn specular
-                    half3 H = normalize(lightDirection + viewDir);
-                    // specular intensity
-                    float specIntensity = pow(saturate(dot(normalDirection, H)), _Shininess);
-                    // schlick's fresnel approximation
-                    float fresnel = pow(1.0f - max(0.0f, dot(viewDir, H)), _FresnelPower);
-                    half3 refl2Refr = _SpecularColor.rgb + (1.0f - _SpecularColor.rgb) * fresnel;
-                    specular = _LightColor0.rgb * refl2Refr * max(0.0f, specIntensity);  
-                }
-
-                for (int i = 0; i < 3; i++)
-                {
-                    // pass values to fragment shader
-                    test.pos = input[i].pos;
-                    test.worldPos = center;
-                    test.uv = input[i].uv;
-                    test.ambient = ambient;
-                    test.specular = specular;
-                    test.diffuse = diffuse;
-                    test.screenPos = input[i].screenPos;
-                    OutputStream.Append(test);
-                }
-            }
-
-            half4 frag(GS_Output i) : SV_Target
-            {
-                half4 refl = tex2Dproj(_ReflectionTex, UNITY_PROJ_COORD(i.screenPos));
-                half4 col = tex2D(_AlbedoTex, i.uv);
-                col.rgb *= i.ambient + (i.diffuse + i.specular);
-                col.rgb = lerp(col.rgb, refl.rgb, _Reflectivity);
-                col.a *= _AlbedoColor.a;
-                return col;
-            }
-            ENDCG
-        }
-		Pass
-        {
-        	Tags{ "RenderMode" = "Transparent" "LightMode" = "ForwardBase" }
-     		Cull Back
-         	ZWrite Off
-        	Blend SrcAlpha OneMinusSrcAlpha
-            CGPROGRAM
-            #pragma vertex vert
-            #pragma fragment frag
-            #pragma geometry geom
-            #pragma multi_compile_fwdbase nolightmap nodirlightmap nodynlightmap novertexlight
-
-            VS_Output vert(VS_Input v)
-            {
-                VS_Output o = (VS_Output)0;
-                // Water simulation
-                v.vertex.xyz += v.normal * WaveHeight(v.vertex.x, v.vertex.z);
-                // Space transform
-                o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
-                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
-                o.uv = TRANSFORM_TEX(v.uv, _AlbedoTex);
-                // compute shadows data
-                TRANSFER_SHADOW(o)
-                // reflection
-                o.waveNormal = UnityObjectToWorldNormal(half4(WaveNormal(v.vertex.x, v.vertex.z), 0.0f));
-                half4 dPos = o.pos;
-                dPos.x += _Disturbance * o.waveNormal.x;
-                dPos.z += _Disturbance * o.waveNormal.z;
-                o.screenPos = ComputeScreenPos(dPos);
-                return o;
-            }
-
-            [maxvertexcount(3)]
-            void geom(triangle VS_Output input[3], inout TriangleStream<GS_Output> OutputStream)
-            {
-                GS_Output test = (GS_Output)0;
-                // average wave normal between the vertices
-                half3 waveFx = (input[0].waveNormal + input[1].waveNormal 
-                                + input[2].waveNormal) / 3.0f;
-                // average between the three triangle vertices
-                half3 center = (input[0].worldPos + input[1].worldPos 
-                                + input[2].worldPos) / 3.0f;
-                // shading
-                half3 normalDirection = normalize(waveFx);
-                half3 lightDirection;
-
-                if (0.0 == _WorldSpaceLightPos0.w) // directional light?
-                {
-                    lightDirection = normalize(_WorldSpaceLightPos0.xyz);
-                }
-                else // point light or spot
-                {
-                    lightDirection = normalize(_WorldSpaceLightPos0.xyz - center);
-                }
-
-                // diffuse intensity
-                float nDotL = dot(normalDirection, lightDirection);
-                half3 ambient = ShadeSH9(half4(normalDirection, 1.0f)) * _AlbedoColor.rgb;
-                half3 diffuse = _LightColor0.rgb * _AlbedoColor.rgb * max(0.0f, nDotL);
-                half3 specular = half3(0.0f, 0.0f, 0.0f);
-
-                if(nDotL > 0.0f)
-                {
-                    half3 viewDir = normalize(_WorldSpaceCameraPos - center);
-                    // half vector for blinn specular
-                    half3 H = normalize(lightDirection + viewDir);
-                    // specular intensity
-                    float specIntensity = pow(saturate(dot(normalDirection, H)), _Shininess);
-                    // schlick's fresnel approximation
-                    float fresnel = pow(1.0f - max(0.0f, dot(viewDir, H)), _FresnelPower);
-                    half3 refl2Refr = _SpecularColor.rgb + (1.0f - _SpecularColor.rgb) * fresnel;
-                    specular = _LightColor0.rgb * refl2Refr * max(0.0f, specIntensity);  
-                }
-
-                for (int i = 0; i < 3; i++)
-                {
-                    // pass values to fragment shader
-                    test.pos = input[i].pos;
-                    test.worldPos = center;
-                    test.uv = input[i].uv;
-                    test.ambient = ambient;
-                    test.specular = specular;
-                    test.diffuse = diffuse;
-                    test.screenPos = input[i].screenPos;
-                    OutputStream.Append(test);
-                }
-            }
-
-            half4 frag(GS_Output i) : SV_Target
-            {
-                half4 refl = tex2Dproj(_ReflectionTex, UNITY_PROJ_COORD(i.screenPos));
-                half4 col = tex2D(_AlbedoTex, i.uv);
-                // compute shadow attenuation (1.0 = fully lit, 0.0 = fully shadowed)
-                UNITY_LIGHT_ATTENUATION(attenuation, i, i.worldPos);
-                col.rgb *= i.ambient + (i.diffuse + i.specular) * attenuation;
-                col.rgb = lerp(col.rgb, refl.rgb, _Reflectivity);
-                col.a *= _AlbedoColor.a;
-                return col;
-            }
-            ENDCG
-        }
-        Pass
-        {
-            Tags { "LightMode" = "ShadowCaster" }
-            CGPROGRAM
-            #pragma vertex vert
-            #pragma fragment frag
-            #pragma multi_compile_shadowcaster
             #include "UnityCG.cginc"
+            #include "Lighting.cginc"
+            #include "LowPolyWaves.cginc"
 
-            struct v2f {
-                V2F_SHADOW_CASTER;
+            struct appdata
+            {
+                float4 vertex : POSITION;
+                float2 uv : TEXCOORD0;
             };
 
-            v2f vert(appdata_base v)
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                float3 worldPos : TEXCOORD0;
+                float2 uv : TEXCOORD1;
+                float4 screenPos : TEXCOORD2;   // w = clip w, used for both grab and depth
+                float eyeDepth : TEXCOORD3;
+                UNITY_FOG_COORDS(4)
+            };
+
+            sampler2D _AlbedoTex;
+            float4 _AlbedoTex_ST;
+            sampler2D _ReflectionTex;
+            half4 _AlbedoColor;
+            half4 _SpecularColor;
+            float _Shininess;
+            float _FresnelPower;
+            float _Reflectivity;
+            float _Disturbance;
+
+            sampler2D _WaterBackground;
+            UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
+            half4 _DeepColor;
+            float4 _Absorption;
+            float _Refraction;
+            half4 _FoamColor;
+            float _FoamDistance;
+            float _FoamBands;
+
+            v2f vert(appdata v)
             {
                 v2f o;
-                // Water simulation
-                v.vertex.xyz += v.normal * WaveHeight(v.vertex.x, v.vertex.z);
-                o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
-                TRANSFER_SHADOW_CASTER_NORMALOFFSET(o)
+                float4 local = float4(DisplaceWater(v.vertex.xyz), 1.0);
+                o.pos = UnityObjectToClipPos(local);
+                o.worldPos = mul(unity_ObjectToWorld, local).xyz;
+                o.uv = TRANSFORM_TEX(v.uv, _AlbedoTex);
+                o.screenPos = ComputeScreenPos(o.pos);
+                o.eyeDepth = -UnityObjectToViewPos(local).z;
+                UNITY_TRANSFER_FOG(o, o.pos);
                 return o;
             }
 
             half4 frag(v2f i) : SV_Target
             {
-                SHADOW_CASTER_FRAGMENT(i)
+                float3 toCamera = _WorldSpaceCameraPos - i.worldPos;
+                float viewDistance = length(toCamera);
+                half3 V = toCamera / viewDistance;
+
+                // Face normal of the displaced triangle: the low poly facet.
+                half3 N = normalize(cross(ddy(i.worldPos), ddx(i.worldPos)));
+                N = dot(N, V) < 0 ? -N : N;
+
+                half3 L = _WorldSpaceLightPos0.w == 0
+                    ? normalize(_WorldSpaceLightPos0.xyz)
+                    : normalize(_WorldSpaceLightPos0.xyz - i.worldPos);
+                half nDotL = saturate(dot(N, L));
+
+                half3 ambient = ShadeSH9(half4(N, 1.0));
+                half3 lighting = ambient + _LightColor0.rgb * nDotL;
+
+                // Blinn-Phong highlight with Schlick's Fresnel on the specular colour.
+                half3 H = normalize(L + V);
+                half fresnel = pow(1.0 - saturate(dot(V, H)), _FresnelPower);
+                half3 specular = _LightColor0.rgb * (_SpecularColor.rgb + (1.0 - _SpecularColor.rgb) * fresnel)
+                               * pow(saturate(dot(N, H)), _Shininess) * (nDotL > 0);
+
+                float2 screenUV = i.screenPos.xy / i.screenPos.w;
+                float2 reflUV = screenUV;
+                reflUV.x += 0.5 * _Disturbance * N.x / i.screenPos.w;
+                half3 reflection = tex2D(_ReflectionTex, reflUV).rgb;
+
+                half3 albedo = tex2D(_AlbedoTex, i.uv).rgb * _AlbedoColor.rgb;
+                half4 col;
+
+            #if defined(_WATER_VOLUME)
+                // Length of the view ray per unit of eye depth, to turn depth gaps into distances.
+                float rayScale = viewDistance / i.eyeDepth;
+
+                // Refract along the facet normal; keep the straight sample if the bent one
+                // lands on something in front of the water.
+                float2 refractUV = screenUV + N.xz * _Refraction;
+                float sceneDepth = LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, refractUV));
+                if (sceneDepth < i.eyeDepth)
+                {
+                    refractUV = screenUV;
+                    sceneDepth = LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, screenUV));
+                }
+                float thickness = max(0.0, sceneDepth - i.eyeDepth) * rayScale;
+
+                // Beer-Lambert: red goes first, so shallows are clear and depths turn blue.
+                half3 transmittance = exp(-_Absorption.rgb * thickness);
+                half3 below = tex2D(_WaterBackground, refractUV).rgb;
+                half3 body = _DeepColor.rgb * lighting;
+                half3 tint = lerp(half3(1, 1, 1), albedo, saturate(thickness));
+                col.rgb = below * transmittance * tint + body * (1.0 - transmittance);
+                col.rgb = lerp(col.rgb, reflection, _Reflectivity);
+
+                // Vertical water depth at this pixel, banded so the foam stays faceted.
+                float3 scenePos = _WorldSpaceCameraPos - V * (sceneDepth * rayScale);
+                float waterDepth = max(0.0, i.worldPos.y - scenePos.y);
+                half foam = saturate(1.0 - waterDepth / _FoamDistance);
+                foam = ceil(foam * _FoamBands) / _FoamBands;
+                col.rgb = lerp(col.rgb, _FoamColor.rgb * lighting, foam * _FoamColor.a);
+                col.a = 1.0;
+            #else
+                col.rgb = albedo * lighting;
+                col.rgb = lerp(col.rgb, reflection, _Reflectivity);
+                col.a = _AlbedoColor.a;
+            #endif
+
+                col.rgb += specular;
+                UNITY_APPLY_FOG(i.fogCoord, col);
+                return col;
             }
             ENDCG
         }

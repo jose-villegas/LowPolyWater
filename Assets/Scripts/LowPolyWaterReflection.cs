@@ -1,23 +1,21 @@
+using System.Collections.Generic;
 using UnityEngine;
-using System.Collections;
 
-[ExecuteInEditMode] // Make mirror live-update even when not in play mode
+[ExecuteAlways] // Make mirror live-update even when not in play mode
 public class LowPolyWaterReflection : MonoBehaviour
 {
     [SerializeField]
     private bool _disablePixelLights = true;
-    [SerializeField]
-    private int _textureSize = 256;
+    [SerializeField, Range(0.125f, 1.0f), Tooltip("Reflection resolution relative to the camera's.")]
+    private float _resolutionScale = 0.5f;
     [SerializeField]
     private float _clipPlaneOffset = 0.07f;
     [SerializeField]
     private LayerMask _reflectLayers = -1;
 
-    private Hashtable _reflectionCameras = new Hashtable();
-    // Camera -> Camera table
+    private readonly Dictionary<Camera, Camera> _reflectionCameras = new Dictionary<Camera, Camera>();
 
     private RenderTexture _reflectionTexture = null;
-    private int _oldReflectionTextureSize = 0;
 
     private static bool _insideRendering = false;
 
@@ -105,8 +103,9 @@ public class LowPolyWaterReflection : MonoBehaviour
             DestroyImmediate(_reflectionTexture);
             _reflectionTexture = null;
         }
-        foreach (DictionaryEntry kvp in _reflectionCameras)
-            DestroyImmediate(((Camera)kvp.Value).gameObject);
+        foreach (var reflectionCamera in _reflectionCameras.Values)
+            if (reflectionCamera)
+                DestroyImmediate(reflectionCamera.gameObject);
         _reflectionCameras.Clear();
     }
 
@@ -149,19 +148,19 @@ public class LowPolyWaterReflection : MonoBehaviour
         reflectionCamera = null;
 
         // Reflection render texture
-        if (!_reflectionTexture || _oldReflectionTextureSize != _textureSize)
+        int width = Mathf.Max(16, Mathf.RoundToInt(currentCamera.pixelWidth * _resolutionScale));
+        int height = Mathf.Max(16, Mathf.RoundToInt(currentCamera.pixelHeight * _resolutionScale));
+        if (!_reflectionTexture || _reflectionTexture.width != width || _reflectionTexture.height != height)
         {
             if (_reflectionTexture)
                 DestroyImmediate(_reflectionTexture);
-            _reflectionTexture = new RenderTexture(_textureSize, _textureSize, 16);
+            _reflectionTexture = new RenderTexture(width, height, 24);
             _reflectionTexture.name = "__MirrorReflection" + GetInstanceID();
-            _reflectionTexture.isPowerOfTwo = true;
             _reflectionTexture.hideFlags = HideFlags.DontSave;
-            _oldReflectionTextureSize = _textureSize;
         }
 
         // Camera for reflection
-        reflectionCamera = _reflectionCameras[currentCamera] as Camera;
+        _reflectionCameras.TryGetValue(currentCamera, out reflectionCamera);
         if (!reflectionCamera) // catch both not-in-dictionary and in-dictionary-but-deleted-GO
         {
             GameObject go = new GameObject("Mirror Refl Camera id" + GetInstanceID() + " for " + currentCamera.GetInstanceID(), typeof(Camera), typeof(Skybox));

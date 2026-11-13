@@ -11,6 +11,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a54e65bd0d42bfa4b915f601c668049b, type: 3}
   m_Name: RiverWater
   m_EditorClassIdentifier: 
+  _model: 1
+  _steepness: 0.6
   _timescale: 3
   _waves: 4
   _wavesInfo:

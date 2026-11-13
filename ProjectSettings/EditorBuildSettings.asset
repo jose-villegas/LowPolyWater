@@ -6,4 +6,8 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Demo/WaterTest2.unity
+    guid: 7606a6d2026ed194899d39692fa80d81
+  - enabled: 1
     path: Assets/Demo/WaterTest.unity
+    guid: 83b471d397750d549a56ec36c32dd73d
