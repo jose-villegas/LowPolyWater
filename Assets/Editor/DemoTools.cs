@@ -183,11 +183,281 @@ public static class DemoTools
         EditorSceneManager.SaveScene(scene);
     }
 
+    // ---- ocean skybox ---------------------------------------------------------------
+
+    const string ProceduralSky = "Assets/Demo/Materials/CustomSkybox.mat";
+    const int SkyFaceSize = 1024;
+
+    [MenuItem("Tools/Low Poly Water/Bake Ocean Skybox")]
+    public static void BakeOceanSkyboxMenu()
+    {
+        BakeOceanSkybox();
+    }
+
+    /// <summary>
+    /// Captures the procedural sky into a cubemap and makes the scene's skybox an ocean
+    /// that continues the water mesh out to the horizon, matched to the mesh's level,
+    /// colour and facet size. Re-run after a bake so the colour picks up the baked ambient.
+    /// </summary>
+    public static void BakeOceanSkybox()
+    {
+        var scene = EditorSceneManager.GetActiveScene();
+        var folder = Path.GetDirectoryName(scene.path).Replace('\\', '/');
+        var cubePath = folder + "/" + scene.name + "Sky.png";
+        var materialPath = folder + "/" + scene.name + "OceanSkybox.mat";
+
+        // 1. The sky, as the procedural skybox draws it.
+        var previous = RenderSettings.skybox;
+        RenderSettings.skybox = AssetDatabase.LoadAssetAtPath<Material>(ProceduralSky);
+        var go = new GameObject("Sky Capture") { hideFlags = HideFlags.HideAndDontSave };
+        var cam = go.AddComponent<Camera>();
+        cam.enabled = false;
+        cam.clearFlags = CameraClearFlags.Skybox;
+        cam.cullingMask = 0;
+        cam.allowHDR = false;
+        var cube = new Cubemap(SkyFaceSize, TextureFormat.RGBA32, false);
+        cam.RenderToCubemap(cube);
+        Object.DestroyImmediate(go);
+        RenderSettings.skybox = previous;
+
+        // 2. A horizontal strip of faces (+X -X +Y -Y +Z -Z), which Unity imports as a cubemap.
+        var strip = new Texture2D(SkyFaceSize * 6, SkyFaceSize, TextureFormat.RGBA32, false);
+        var faces = new[] { CubemapFace.PositiveX, CubemapFace.NegativeX, CubemapFace.PositiveY,
+                            CubemapFace.NegativeY, CubemapFace.PositiveZ, CubemapFace.NegativeZ };
+        for (int f = 0; f < faces.Length; f++)
+        {
+            var pixels = cube.GetPixels(faces[f]);
+            // Cubemap faces are stored top row first; Texture2D rows start at the bottom.
+            for (int y = 0; y < SkyFaceSize; y++)
+            {
+                var row = new Color[SkyFaceSize];
+                System.Array.Copy(pixels, (SkyFaceSize - 1 - y) * SkyFaceSize, row, 0, SkyFaceSize);
+                strip.SetPixels(f * SkyFaceSize, y, SkyFaceSize, 1, row);
+            }
+        }
+        File.WriteAllBytes(cubePath, strip.EncodeToPNG());
+        Object.DestroyImmediate(strip);
+        Object.DestroyImmediate(cube);
+        AssetDatabase.ImportAsset(cubePath);
+        var importer = (TextureImporter)AssetImporter.GetAtPath(cubePath);
+        importer.textureShape = TextureImporterShape.TextureCube;
+        importer.generateCubemap = TextureImporterGenerateCubemap.AutoCubemap;
+        importer.mipmapEnabled = false;
+        importer.wrapMode = TextureWrapMode.Clamp;
+        importer.textureCompression = TextureImporterCompression.Uncompressed;   // no banding in the gradients
+        importer.SaveAndReimport();
+
+        // 3. The ocean, matched to the water mesh.
+        var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+        if (material == null)
+        {
+            material = new Material(Shader.Find("LowPolyWater/Skybox Ocean"));
+            AssetDatabase.CreateAsset(material, materialPath);
+        }
+        material.SetTexture("_Sky", AssetDatabase.LoadAssetAtPath<Cubemap>(cubePath));
+
+        var water = Object.FindFirstObjectByType<LowPolyWater>();
+        if (water != null)
+        {
+            var renderer = water.GetComponent<Renderer>();
+            var waterMaterial = renderer.sharedMaterial;
+            var bounds = renderer.bounds;
+
+            // Mean surface height: both wave models lift the mesh by about the summed amplitude.
+            float lift = 0;
+            if (water.Waves != null)
+                for (int i = 0; i < water.Waves.Length; i++)
+                    lift += water.Waves[i].amplitude;
+            material.SetFloat("_WaterLevel", water.transform.position.y + lift);
+
+            // The colour the water shader gives deep water: its deep colour, lit by sky and sun.
+            var deep = waterMaterial.HasProperty("_DeepColor") ? waterMaterial.GetColor("_DeepColor") : waterMaterial.GetColor("_AlbedoColor");
+            // Light it the way the river is lit: from the baked light probes over the water if
+            // it uses them, otherwise from the scene's ambient probe.
+            var probe = RenderSettings.ambientProbe;
+            if (renderer.lightProbeUsage != UnityEngine.Rendering.LightProbeUsage.Off && LightmapSettings.lightProbes != null)
+                LightProbes.GetInterpolatedProbe(bounds.center + Vector3.up, renderer, out probe);
+            var ambient = new Color[1];
+            probe.Evaluate(new[] { Vector3.up }, ambient);
+            var light = ambient[0];
+            // ShadeSH9 hands shaders gamma values in a Gamma colour space project; the probe is linear.
+            if (PlayerSettings.colorSpace == ColorSpace.Gamma)
+                light = light.gamma;
+            if (RenderSettings.sun != null)
+                light += RenderSettings.sun.color * RenderSettings.sun.intensity * Mathf.Max(0, -RenderSettings.sun.transform.forward.y);
+            material.SetColor("_WaterColor", new Color(deep.r * light.r, deep.g * light.g, deep.b * light.b, 1));
+            material.SetFloat("_Reflectivity", waterMaterial.GetFloat("_Reflectivity"));
+
+            // Fresnel takes over past the mesh's far corners.
+            float reach = new Vector2(bounds.extents.x, bounds.extents.z).magnitude;
+            material.SetVector("_Center", new Vector4(bounds.center.x, 0, bounds.center.z, 0));
+            material.SetFloat("_FresnelStart", reach);
+            material.SetFloat("_FresnelEnd", reach * 5);
+
+            // Facets as big as the mesh's triangles.
+            var mesh = water.GetComponent<MeshFilter>().sharedMesh;
+            float cells = Mathf.Max(1, Mathf.Sqrt(mesh.vertexCount) - 1);
+            material.SetFloat("_FacetSize", bounds.size.x / cells);
+        }
+        EditorUtility.SetDirty(material);
+        AssetDatabase.SaveAssets();
+
+        // The scene keeps the procedural sky for ambient light, reflections and the bake;
+        // only the camera draws the ocean (the water's reflection camera copies it).
+        RenderSettings.skybox = AssetDatabase.LoadAssetAtPath<Material>(ProceduralSky);
+        var mainCamera = Camera.main;
+        if (mainCamera != null)
+        {
+            var skybox = mainCamera.GetComponent<Skybox>();
+            if (skybox == null)
+                skybox = mainCamera.gameObject.AddComponent<Skybox>();
+            skybox.material = material;
+            EditorUtility.SetDirty(skybox);
+        }
+        DynamicGI.UpdateEnvironment();
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        Debug.Log("[DemoTools] Ocean skybox: " + materialPath);
+    }
+
+    // ---- wind -------------------------------------------------------------------------
+
+    // Wind bend per material of the terrain's tree prototypes (m of sway per m^2 of height).
+    // Materials not listed keep their shader: rocks, logs and stumps stand still.
+    static readonly (string prefix, float weight)[] FoliageWeights =
+    {
+        ("trees_", 0.003f),        // the tall low poly trees: tops sway about 0.25 m in gusts
+        ("Leaves1", 0.3f),         // grass blades
+        ("Red", 0.3f),             // flower petals, with their grass stems
+        ("Bush Leaves", 0.06f),    // bushes are wider and stiffer than grass
+    };
+
+    // Prototypes whose shared material needs its own copy before it can bend differently.
+    static readonly (string prefab, string material, string copy)[] FoliageCopies =
+    {
+        ("Bush_2", "Leaves1", "Bush Leaves"),
+        ("Rock_1_Mossy", "Leaves1", "Moss"),   // moss on a rock stays put
+    };
+
+    const float CanopyHeight = 5.0f;           // where the baked tree shadows come from
+
+    [MenuItem("Tools/Low Poly Water/Configure Wind")]
+    public static void ConfigureWindMenu()
+    {
+        ConfigureWind();
+    }
+
+    /// <summary>
+    /// Adds a wind to the open scene, moves the terrain's grass, flowers, bushes and trees
+    /// to the wind-bent foliage shader, and gives the terrain the shader that sways the
+    /// baked tree shadows along with them.
+    /// </summary>
+    public static void ConfigureWind()
+    {
+        var scene = EditorSceneManager.GetActiveScene();
+        if (Object.FindFirstObjectByType<LowPolyWind>() == null)
+            new GameObject("Wind").AddComponent<LowPolyWind>();
+
+        var foliage = Shader.Find("LowPolyWater/Foliage");
+        float treeWeight = 0;
+        foreach (var terrain in Object.FindObjectsByType<Terrain>(FindObjectsSortMode.None))
+        {
+            foreach (var prototype in terrain.terrainData.treePrototypes)
+            {
+                if (prototype.prefab == null)
+                    continue;
+                bool prefabChanged = false;
+                foreach (var renderer in prototype.prefab.GetComponentsInChildren<Renderer>(true))
+                {
+                    var materials = renderer.sharedMaterials;
+                    for (int i = 0; i < materials.Length; i++)
+                    {
+                        var m = materials[i];
+                        if (m == null)
+                            continue;
+                        foreach (var copy in FoliageCopies)
+                        {
+                            if (copy.prefab != prototype.prefab.name || copy.material != m.name)
+                                continue;
+                            var path = Path.GetDirectoryName(AssetDatabase.GetAssetPath(m)) + "/" + copy.copy + ".mat";
+                            if (AssetDatabase.LoadAssetAtPath<Material>(path) == null)
+                                AssetDatabase.CopyAsset(AssetDatabase.GetAssetPath(m), path);
+                            materials[i] = m = AssetDatabase.LoadAssetAtPath<Material>(path);
+                            prefabChanged = true;
+                            // A copy taken after its source went to the foliage shader would
+                            // inherit its bend; copies without their own weight stand still.
+                            if (System.Array.FindIndex(FoliageWeights, w => m.name.StartsWith(w.prefix)) < 0
+                                && m.HasProperty("_WindWeight"))
+                            {
+                                m.SetFloat("_WindWeight", 0);
+                                m.SetFloat("_Flutter", 0);
+                                EditorUtility.SetDirty(m);
+                            }
+                        }
+                        foreach (var (prefix, weight) in FoliageWeights)
+                        {
+                            if (!m.name.StartsWith(prefix))
+                                continue;
+                            if (m.shader != foliage)
+                                m.shader = foliage;   // keeps _MainTex and _Color
+                            m.SetFloat("_WindWeight", weight);
+                            m.SetFloat("_Wrap", 0);   // backlit sides stay dark, as with Soft Occlusion
+                            m.enableInstancing = true;
+                            EditorUtility.SetDirty(m);
+                            if (prefix == "trees_")
+                                treeWeight = weight;
+                        }
+                    }
+                    if (prefabChanged)
+                        renderer.sharedMaterials = materials;
+                }
+                if (prefabChanged)
+                    PrefabUtility.SavePrefabAsset(prototype.prefab);
+            }
+            terrain.terrainData.RefreshPrototypes();
+
+            // Foliage has no billboards: draw the meshes at every distance.
+            terrain.treeBillboardDistance = Mathf.Max(terrain.treeBillboardDistance, 1000);
+            terrain.drawInstanced = true;
+            terrain.basemapDistance = Mathf.Max(terrain.basemapDistance, 1000);
+
+            var materialPath = Path.GetDirectoryName(scene.path).Replace('\\', '/') + "/" + scene.name + "Terrain.mat";
+            var terrainMaterial = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (terrainMaterial == null)
+            {
+                terrainMaterial = new Material(Shader.Find("LowPolyWater/Terrain"));
+                AssetDatabase.CreateAsset(terrainMaterial, materialPath);
+            }
+            terrainMaterial.SetVector("_TerrainSize", terrain.terrainData.size);
+            terrainMaterial.SetFloat("_ShadowCasterHeight", CanopyHeight);
+            terrainMaterial.SetFloat("_ShadowSway", treeWeight * CanopyHeight * CanopyHeight);
+            terrainMaterial.enableInstancing = true;
+            EditorUtility.SetDirty(terrainMaterial);
+            terrain.materialTemplate = terrainMaterial;
+            terrain.Flush();
+            EditorUtility.SetDirty(terrain);
+        }
+        AssetDatabase.SaveAssets();
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        Debug.Log("[DemoTools] Wind configured");
+    }
+
+    /// <summary>
+    /// The whole demo setup: wind, ocean skybox, lighting, bake, then the ocean colour again
+    /// with the baked ambient, and a capture.
+    /// </summary>
     public static void ConfigureAndBakeFromCommandLine()
     {
         EditorSceneManager.OpenScene(Arg("-scene", DemoScene));
+        ConfigureWind();
+        BakeOceanSkybox();
         ConfigureLighting();
-        BakeFromCommandLineOpen();
+        if (!Bake())
+            EditorApplication.Exit(1);
+        BakeOceanSkybox();
+        ApplyKeywordOverrides();
+        Capture(Arg("-out", Path.Combine(CaptureFolder, "baked.png")), 1920, 1080);
     }
 
     /// <summary>Synchronous lighting bake of the open scene with its saved settings.</summary>

@@ -23,6 +23,12 @@ public class LowPolyWater : MonoBehaviour
     [Header("Quad Detail"), SerializeField, InspectorButton("SubdivideMesh")]
     private bool _subdivideMesh;
 
+    /// <summary>The wave setup this surface animates with.</summary>
+    public SineWaves Waves
+    {
+        get { return _sineWaves; }
+    }
+
     // Fixed size: Unity locks a material array's length the first time it is set.
     private readonly Vector4[] _sineWave0 = new Vector4[MaxWaves];
     private readonly Vector4[] _sineWave1 = new Vector4[MaxWaves];
