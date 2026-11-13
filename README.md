@@ -66,10 +66,6 @@ Up to 8 waves. Tick **Update Material Per Frame** on the component to see edits 
 - **Ocean:** put a `LowPolyWater/Skybox Ocean` material on the camera's `Skybox` component. **Tools > Low Poly Water > Bake Ocean Skybox** builds one for the open scene from its sky and water.
 - **Wind:** add a `LowPolyWind` component to the scene and use `LowPolyWater/Foliage` on plants. **Wind Bend** on each material sets how far it bends. `LowPolyWater/Terrain` makes baked shadows sway with the plants.
 
-## Demo tools
-
-**Tools > Low Poly Water** has the commands that set up the demo scene: configure and bake the lighting, configure the wind, bake the ocean skybox, and capture the main camera.
-
 ## Third-party content
 
 The demo scene uses free Asset Store packs, kept under `Assets/Demo/External/`: *3LE Low Poly Cloud Pack*, *Low Poly Styled Trees*, and a set of low poly nature props. `ExtendedFlycam`, `MeshHelper`, `NoSharedVertices` and `InspectorButton` are adapted community scripts.
